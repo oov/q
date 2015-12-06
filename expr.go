@@ -36,8 +36,6 @@ type Expressions interface {
 
 func writeValue(v interface{}, ctx *ctx, buf []byte) []byte {
 	switch vv := v.(type) {
-	case Column:
-		return vv.writeColumn(ctx, buf)
 	case Expression:
 		return vv.writeExpression(ctx, buf)
 	case nil:
@@ -247,12 +245,8 @@ func (e unsafeExpr) String() string {
 func (e unsafeExpr) writeExpression(ctx *ctx, buf []byte) []byte {
 	for _, i := range e {
 		switch v := i.(type) {
-		case Column:
-			buf = v.writeColumn(ctx, buf)
 		case Expression:
 			buf = v.writeExpression(ctx, buf)
-		case []byte:
-			buf = append(buf, v...)
 		case string:
 			buf = append(buf, v...)
 		case nil:
