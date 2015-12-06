@@ -109,10 +109,10 @@ func C(c interface{}, aliasName ...string) Column {
 	switch v := c.(type) {
 	case *columnAlias:
 		return v // prevents double wrapping
-	case Expression:
-		r = &exprAsColumn{v}
 	case Column:
 		r = v
+	case Expression:
+		r = &exprAsColumn{v}
 	case string:
 		r = column(v)
 	default:
