@@ -103,7 +103,7 @@ func (ph *postgresPlaceholder) Next(buf []byte) []byte {
 
 	var b [32]byte
 	x := ph.c
-	i := len(buf) - 1
+	i := len(b) - 1
 	for x > 9 {
 		b[i] = byte(x%10 + '0')
 		x /= 10
