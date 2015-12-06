@@ -42,7 +42,7 @@ func writeValue(v interface{}, ctx *ctx, buf []byte) []byte {
 		return append(buf, "NULL"...)
 	}
 	ctx.Args = append(ctx.Args, v)
-	return append(buf, ctx.Placeholder.Next()...)
+	return ctx.Placeholder.Next(buf)
 }
 
 type simpleExpr struct {
@@ -108,11 +108,11 @@ func (e *eqExpr) writeExpression(ctx *ctx, buf []byte) []byte {
 			buf = append(buf, " NOT IN ("...)
 		}
 		args := ctx.Args
-		buf = append(buf, ctx.Placeholder.Next()...)
+		buf = ctx.Placeholder.Next(buf)
 		args = append(args, v.Index(0).Interface())
 		for i, l := 1, v.Len(); i < l; i++ {
 			buf = append(buf, ',')
-			buf = append(buf, ctx.Placeholder.Next()...)
+			buf = ctx.Placeholder.Next(buf)
 			args = append(args, v.Index(i).Interface())
 		}
 		buf = append(buf, ')')
@@ -274,7 +274,7 @@ type variable struct {
 
 func (v *variable) writeExpression(ctx *ctx, buf []byte) []byte {
 	ctx.Args = append(ctx.Args, v.V)
-	return append(buf, ctx.Placeholder.Next()...)
+	return ctx.Placeholder.Next(buf)
 }
 
 // InV creates Variable from multiple inputs.
@@ -292,10 +292,10 @@ type inVariable struct {
 
 func (v *inVariable) writeExpression(ctx *ctx, buf []byte) []byte {
 	buf = append(buf, '(')
-	buf = append(buf, ctx.Placeholder.Next()...)
+	buf = ctx.Placeholder.Next(buf)
 	for i, l := 1, len(v.V); i < l; i++ {
 		buf = append(buf, ',')
-		buf = append(buf, ctx.Placeholder.Next()...)
+		buf = ctx.Placeholder.Next(buf)
 	}
 	buf = append(buf, ')')
 	ctx.Args = append(ctx.Args, v.V...)

@@ -7,7 +7,7 @@ type dialect interface {
 }
 
 type placeholder interface {
-	Next() string
+	Next(buf []byte) []byte
 }
 
 var (
@@ -87,30 +87,30 @@ type fakeDialect struct{}
 
 func (fakeDialect) Quote(buf []byte, word string) []byte { return escape(buf, '"', word) }
 func (fakeDialect) Placeholder() placeholder             { return fakeDialect{} }
-func (fakeDialect) Next() string                         { return "?" }
+func (fakeDialect) Next(buf []byte) []byte               { return append(buf, '?') }
 func (fakeDialect) CharLengthName() string               { return "CHAR_LENGTH" }
 
 type genericPlaceholder struct{}
 
-func (*genericPlaceholder) Next() string { return "?" }
+func (*genericPlaceholder) Next(buf []byte) []byte { return append(buf, '?') }
 
 type postgresPlaceholder struct {
 	c int
 }
 
-func (ph *postgresPlaceholder) Next() string {
+func (ph *postgresPlaceholder) Next(buf []byte) []byte {
 	ph.c++
 
-	var buf [32]byte
+	var b [32]byte
 	x := ph.c
 	i := len(buf) - 1
 	for x > 9 {
-		buf[i] = byte(x%10 + '0')
+		b[i] = byte(x%10 + '0')
 		x /= 10
 		i--
 	}
-	buf[i] = byte(x + '0')
+	b[i] = byte(x + '0')
 	i--
-	buf[i] = '$'
-	return string(buf[i:])
+	b[i] = '$'
+	return append(buf, b[i:]...)
 }
