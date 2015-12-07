@@ -107,7 +107,7 @@ var testModel = map[dialect]struct {
 	},
 }
 
-func exec(name string, db *sql.DB, d dialect, sqls []string) {
+func exec(t *testing.T, name string, db *sql.DB, d dialect, sqls []string) {
 	for i, sql := range sqls {
 		if _, err := db.Exec(sql); err != nil {
 			t.Fatalf("%s %s[%d] %v", d, name, i, err)
