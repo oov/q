@@ -100,9 +100,14 @@ type postgresPlaceholder struct {
 
 func (ph *postgresPlaceholder) Next(buf []byte) []byte {
 	ph.c++
+	x := ph.c
+	if x < 10 {
+		return append(buf, '$', byte(x+'0'))
+	} else if x < 100 {
+		return append(buf, '$', byte(x%10+'0'), byte(x/10+'0'))
+	}
 
 	var b [32]byte
-	x := ph.c
 	i := len(b) - 1
 	for x > 9 {
 		b[i] = byte(x%10 + '0')
