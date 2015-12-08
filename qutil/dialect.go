@@ -94,7 +94,7 @@ func (ph *postgresPlaceholder) Next(buf []byte) []byte {
 	if x < 10 {
 		return append(buf, '$', byte(x+'0'))
 	} else if x < 100 {
-		return append(buf, '$', byte(x%10+'0'), byte(x/10+'0'))
+		return append(buf, '$', byte(x/10+'0'), byte(x%10+'0'))
 	}
 
 	var b [32]byte

@@ -9,9 +9,13 @@ func TestPostgresPlaceholder(t *testing.T) {
 		C      int
 	}{
 		{Before: nil, After: `$1`, C: 0},
+		{Before: nil, After: `$6`, C: 5},
 		{Before: []byte(`keyword`), After: `keyword$11`, C: 10},
+		{Before: []byte(`keyword`), After: `keyword$16`, C: 15},
 		{Before: make([]byte, 0, 32), After: `$101`, C: 100},
+		{Before: make([]byte, 0, 32), After: `$159`, C: 158},
 		{Before: make([]byte, 0, 32), After: `$1001`, C: 1000},
+		{Before: make([]byte, 0, 32), After: `$1369`, C: 1368},
 	}
 	p := &postgresPlaceholder{}
 	for i, test := range testData {
