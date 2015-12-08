@@ -7,26 +7,6 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-// SQL represents a executable SQL statement.
-// In other words, this doesn't represents a piece of SQL statement.
-type SQL interface {
-	Expression
-	fmt.Stringer
-}
-
-type sqlBytes []byte
-
-func (s sqlBytes) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	buf = append(buf, '(')
-	buf = append(buf, s...)
-	buf = append(buf, ')')
-	return buf
-}
-
-func (s sqlBytes) String() string {
-	return string(s)
-}
-
 // SelectBuilder implemenets a SELECT builder.
 // This also implements Expression interface, so it can use in many place.
 type SelectBuilder struct {
@@ -193,7 +173,7 @@ func (b *SelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 }
 
 // SQL returns generated SQL and arguments.
-func (b *SelectBuilder) SQL() (SQL, []interface{}) {
+func (b *SelectBuilder) SQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect
@@ -202,7 +182,7 @@ func (b *SelectBuilder) SQL() (SQL, []interface{}) {
 	}
 	buf, ctx := qutil.NewContext(b, 128, 8, d)
 	buf = b.write(ctx, buf)
-	return sqlBytes(buf), ctx.Args
+	return string(buf), ctx.Args
 }
 
 // String implements fmt.Stringer interface.
