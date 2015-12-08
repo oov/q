@@ -91,6 +91,7 @@ func (b *UpdateBuilder) SQL() (string, []interface{}) {
 		d = DefaultDialect
 	}
 	buf, ctx := qutil.NewContext(b, 128, 8, d)
+	ctx.CUD = true
 	buf = b.write(ctx, buf)
 	return string(buf), ctx.Args
 }
@@ -98,6 +99,7 @@ func (b *UpdateBuilder) SQL() (string, []interface{}) {
 // String implemenets fmt.Stringer interface.
 func (b *UpdateBuilder) String() string {
 	buf, ctx := qutil.NewContext(b, 128, 8, nil)
+	ctx.CUD = true
 	buf = b.write(ctx, buf)
 	buf = append(buf, ' ')
 	return fmt.Sprint(string(buf), ctx.Args)

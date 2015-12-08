@@ -347,13 +347,24 @@ func ExampleDeleteBuilder() {
 	del := q.Delete(user).Where(q.Eq(user.C("id"), 1))
 	// del := q.Delete().From(user).Where(q.Eq(user.C("id"), 1)) // same
 	fmt.Println(del)
+
+	// Even in this case, the original name is used as a table and a column name
+	// because Insert, Delete and Update aren't supporting "AS" syntax.
+	u := q.T("user", "u")
+	fmt.Println(q.Delete(u).Where(q.Eq(u.C("id", "i"), 1)))
 	// Output:
-	// DELETE FROM "user" WHERE "user"."id" = ? [1]
+	// DELETE FROM "user" WHERE "id" = ? [1]
+	// DELETE FROM "user" WHERE "id" = ? [1]
 }
 
 func ExampleUpdateBuilder() {
 	upd := q.Update(q.T("user")).Set(q.C("name"), "hackme").Where(q.Eq(q.C("id"), 1))
 	fmt.Println(upd)
+	// Even in this case, the original name is used as a table and a column name
+	// because Insert, Delete and Update aren't supporting "AS" syntax.
+	u := q.T("user", "u")
+	fmt.Println(q.Update(u).Set(u.C("name"), "hackme").Where(q.Eq(u.C("id"), 1)))
 	// Output:
+	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 }

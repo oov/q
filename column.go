@@ -33,10 +33,16 @@ func (c *columnAlias) String() string {
 }
 
 func (c *columnAlias) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
+	if ctx.CUD {
+		return c.Column.WriteColumn(ctx, buf)
+	}
 	return ctx.Dialect.Quote(buf, c.Alias)
 }
 
 func (c *columnAlias) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	if ctx.CUD {
+		return c.Column.WriteColumn(ctx, buf)
+	}
 	buf = c.Column.WriteColumn(ctx, buf)
 	buf = append(buf, " AS "...)
 	return c.WriteColumn(ctx, buf)
@@ -77,6 +83,9 @@ func (c *columnWithTable) String() string {
 }
 
 func (c *columnWithTable) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
+	if ctx.CUD {
+		return ctx.Dialect.Quote(buf, string(c.column))
+	}
 	buf = c.Table.WriteTable(ctx, buf)
 	buf = append(buf, '.')
 	buf = ctx.Dialect.Quote(buf, string(c.column))

@@ -2,6 +2,7 @@ package qutil
 
 type Context struct {
 	Starter     interface{}
+	CUD         bool // Whether current context is Create or Update or Delete.
 	Dialect     Dialect
 	Placeholder Placeholder
 	Args        []interface{}

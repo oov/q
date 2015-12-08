@@ -117,10 +117,16 @@ func (t *tableAlias) C(columnName string, aliasName ...string) Column {
 }
 
 func (t *tableAlias) WriteTable(ctx *qutil.Context, buf []byte) []byte {
+	if ctx.CUD {
+		return t.Table.WriteTable(ctx, buf)
+	}
 	return ctx.Dialect.Quote(buf, t.Alias)
 }
 
 func (t *tableAlias) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	if ctx.CUD {
+		return t.Table.WriteTable(ctx, buf)
+	}
 	buf = t.Table.WriteTable(ctx, buf)
 	buf = append(buf, " AS "...)
 	buf = t.WriteTable(ctx, buf)
@@ -157,6 +163,9 @@ func (t *table) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 }
 
 func (t *table) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	if ctx.CUD {
+		return t.WriteTable(ctx, buf)
+	}
 	buf = t.WriteTable(ctx, buf)
 	buf = t.WriteJoins(ctx, buf)
 	return buf
