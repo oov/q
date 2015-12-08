@@ -2,19 +2,23 @@ package q
 
 import (
 	"fmt"
+
+	"github.com/oov/q/qutil"
 )
 
 // Column represents database table column.
 // You can create it from C or Table.C.
 type Column interface {
 	Expression
-	writeColumn(ctx *ctx, buf []byte) []byte
-	writeDefinition(ctx *ctx, buf []byte) []byte
+
+	// for internal use.
+	WriteColumn(ctx *qutil.Context, buf []byte) []byte
+	WriteDefinition(ctx *qutil.Context, buf []byte) []byte
 }
 
 func columnToString(c Column) string {
-	buf, ctx := newDummyCtx(32, 0)
-	buf = c.writeDefinition(ctx, buf)
+	buf, ctx := qutil.NewContext(c, 32, 0, nil)
+	buf = c.WriteDefinition(ctx, buf)
 	buf = append(buf, ' ')
 	return fmt.Sprint(string(buf), ctx.Args)
 }
@@ -28,14 +32,14 @@ func (c *columnAlias) String() string {
 	return columnToString(c)
 }
 
-func (c *columnAlias) writeColumn(ctx *ctx, buf []byte) []byte {
+func (c *columnAlias) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
 	return ctx.Dialect.Quote(buf, c.Alias)
 }
 
-func (c *columnAlias) writeDefinition(ctx *ctx, buf []byte) []byte {
-	buf = c.Column.writeColumn(ctx, buf)
+func (c *columnAlias) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	buf = c.Column.WriteColumn(ctx, buf)
 	buf = append(buf, " AS "...)
-	return c.writeColumn(ctx, buf)
+	return c.WriteColumn(ctx, buf)
 }
 
 type column string
@@ -44,16 +48,16 @@ func (c column) String() string {
 	return columnToString(c)
 }
 
-func (c column) writeColumn(ctx *ctx, buf []byte) []byte {
+func (c column) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
 	return ctx.Dialect.Quote(buf, string(c))
 }
 
-func (c column) writeExpression(ctx *ctx, buf []byte) []byte {
-	return c.writeColumn(ctx, buf)
+func (c column) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	return c.WriteColumn(ctx, buf)
 }
 
-func (c column) writeDefinition(ctx *ctx, buf []byte) []byte {
-	return c.writeColumn(ctx, buf)
+func (c column) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	return c.WriteColumn(ctx, buf)
 }
 
 type columnWithTable struct {
@@ -65,19 +69,19 @@ func (c *columnWithTable) String() string {
 	return columnToString(c)
 }
 
-func (c *columnWithTable) writeColumn(ctx *ctx, buf []byte) []byte {
-	buf = c.Table.writeTable(ctx, buf)
+func (c *columnWithTable) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
+	buf = c.Table.WriteTable(ctx, buf)
 	buf = append(buf, '.')
 	buf = ctx.Dialect.Quote(buf, string(c.column))
 	return buf
 }
 
-func (c *columnWithTable) writeExpression(ctx *ctx, buf []byte) []byte {
-	return c.writeColumn(ctx, buf)
+func (c *columnWithTable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	return c.WriteColumn(ctx, buf)
 }
 
-func (c *columnWithTable) writeDefinition(ctx *ctx, buf []byte) []byte {
-	return c.writeColumn(ctx, buf)
+func (c *columnWithTable) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	return c.WriteColumn(ctx, buf)
 }
 
 type exprAsColumn struct {
@@ -88,16 +92,16 @@ func (c *exprAsColumn) String() string {
 	return columnToString(c)
 }
 
-func (c *exprAsColumn) writeColumn(ctx *ctx, buf []byte) []byte {
-	return c.Expression.writeExpression(ctx, buf)
+func (c *exprAsColumn) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
+	return c.Expression.WriteExpression(ctx, buf)
 }
 
-func (c *exprAsColumn) writeExpression(ctx *ctx, buf []byte) []byte {
-	return c.Expression.writeExpression(ctx, buf)
+func (c *exprAsColumn) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	return c.Expression.WriteExpression(ctx, buf)
 }
 
-func (c *exprAsColumn) writeDefinition(ctx *ctx, buf []byte) []byte {
-	return c.Expression.writeExpression(ctx, buf)
+func (c *exprAsColumn) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	return c.Expression.WriteExpression(ctx, buf)
 }
 
 // C creates database table column.

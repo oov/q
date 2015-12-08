@@ -2,6 +2,8 @@ package q
 
 import (
 	"fmt"
+
+	"github.com/oov/q/qutil"
 )
 
 // Table represents database table.
@@ -16,14 +18,15 @@ type Table interface {
 	JoinIndex(i int) (string, Table, Expressions)
 	JoinLen() int
 
-	writeTable(ctx *ctx, buf []byte) []byte
-	writeJoins(ctx *ctx, buf []byte) []byte
-	writeDefinition(ctx *ctx, buf []byte) []byte
+	// for internal use.
+	WriteTable(ctx *qutil.Context, buf []byte) []byte
+	WriteJoins(ctx *qutil.Context, buf []byte) []byte
+	WriteDefinition(ctx *qutil.Context, buf []byte) []byte
 }
 
-func tablerToString(t Table) string {
-	buf, ctx := newDummyCtx(32, 0)
-	buf = t.writeDefinition(ctx, buf)
+func tableToString(t Table) string {
+	buf, ctx := qutil.NewContext(t, 32, 0, nil)
+	buf = t.WriteDefinition(ctx, buf)
 	buf = append(buf, ' ')
 	return fmt.Sprint(string(buf), ctx.Args)
 }
@@ -71,7 +74,7 @@ func (j *joinable) JoinLen() int {
 	return len(j.Joins)
 }
 
-func (j *joinable) writeJoins(ctx *ctx, buf []byte) []byte {
+func (j *joinable) WriteJoins(ctx *qutil.Context, buf []byte) []byte {
 	for _, v := range j.Joins {
 		buf = append(buf, ' ')
 		buf = append(buf, v.Type...)
@@ -80,13 +83,13 @@ func (j *joinable) writeJoins(ctx *ctx, buf []byte) []byte {
 		if hasJoins {
 			buf = append(buf, '(')
 		}
-		buf = v.Table.writeDefinition(ctx, buf)
+		buf = v.Table.WriteDefinition(ctx, buf)
 		if hasJoins {
 			buf = append(buf, ')')
 		}
 		if v.Conds.Len() > 0 {
 			buf = append(buf, " ON "...)
-			buf = v.Conds.writeExpression(ctx, buf)
+			buf = v.Conds.WriteExpression(ctx, buf)
 		}
 	}
 	return buf
@@ -106,22 +109,22 @@ type tableAlias struct {
 }
 
 func (t *tableAlias) String() string {
-	return tablerToString(t)
+	return tableToString(t)
 }
 
 func (t *tableAlias) C(columnName string, aliasName ...string) Column {
 	return columnTable(t, columnName, aliasName...)
 }
 
-func (t *tableAlias) writeTable(ctx *ctx, buf []byte) []byte {
+func (t *tableAlias) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 	return ctx.Dialect.Quote(buf, t.Alias)
 }
 
-func (t *tableAlias) writeDefinition(c *ctx, buf []byte) []byte {
-	buf = t.Table.writeTable(c, buf)
+func (t *tableAlias) WriteDefinition(c *qutil.Context, buf []byte) []byte {
+	buf = t.Table.WriteTable(c, buf)
 	buf = append(buf, " AS "...)
-	buf = t.writeTable(c, buf)
-	buf = t.writeJoins(c, buf)
+	buf = t.WriteTable(c, buf)
+	buf = t.WriteJoins(c, buf)
 	return buf
 }
 
@@ -146,16 +149,16 @@ type table struct {
 }
 
 func (t *table) String() string {
-	return tablerToString(t)
+	return tableToString(t)
 }
 
-func (t *table) writeTable(ctx *ctx, buf []byte) []byte {
+func (t *table) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 	return ctx.Dialect.Quote(buf, t.Table)
 }
 
-func (t *table) writeDefinition(ctx *ctx, buf []byte) []byte {
-	buf = t.writeTable(ctx, buf)
-	buf = t.writeJoins(ctx, buf)
+func (t *table) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	buf = t.WriteTable(ctx, buf)
+	buf = t.WriteJoins(ctx, buf)
 	return buf
 }
 
@@ -184,19 +187,19 @@ type selectBuilderAsTable struct {
 }
 
 func (t *selectBuilderAsTable) String() string {
-	return tablerToString(t)
+	return tableToString(t)
 }
 
-func (t *selectBuilderAsTable) writeTable(ctx *ctx, buf []byte) []byte {
+func (t *selectBuilderAsTable) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
 	buf = t.SelectBuilder.write(ctx, buf)
 	buf = append(buf, ')')
 	return buf
 }
 
-func (t *selectBuilderAsTable) writeDefinition(ctx *ctx, buf []byte) []byte {
-	buf = t.writeTable(ctx, buf)
-	buf = t.writeJoins(ctx, buf)
+func (t *selectBuilderAsTable) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	buf = t.WriteTable(ctx, buf)
+	buf = t.WriteJoins(ctx, buf)
 	return buf
 }
 

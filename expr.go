@@ -3,6 +3,8 @@ package q
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/oov/q/qutil"
 )
 
 // Expression represents expressions.
@@ -14,7 +16,14 @@ import (
 // 	Lt  <
 // 	Lte <=
 type Expression interface {
-	writeExpression(ctx *ctx, buf []byte) []byte
+	// for internal use.
+	WriteExpression(ctx *qutil.Context, buf []byte) []byte
+}
+
+func expressionToString(e Expression) string {
+	buf, ctx := qutil.NewContext(e, 32, 1, nil)
+	buf = e.WriteExpression(ctx, buf)
+	return fmt.Sprint(string(buf), " ", ctx.Args)
 }
 
 func interfaceToExpression(x interface{}) Expression {
@@ -34,10 +43,10 @@ type Expressions interface {
 	Len() int
 }
 
-func writeValue(v interface{}, ctx *ctx, buf []byte) []byte {
+func writeValue(v interface{}, ctx *qutil.Context, buf []byte) []byte {
 	switch vv := v.(type) {
 	case Expression:
-		return vv.writeExpression(ctx, buf)
+		return vv.WriteExpression(ctx, buf)
 	case nil:
 		return append(buf, "NULL"...)
 	}
@@ -51,17 +60,11 @@ type simpleExpr struct {
 	Right interface{}
 }
 
-func expressionToString(e Expression) string {
-	buf, ctx := newDummyCtx(32, 1)
-	buf = e.writeExpression(ctx, buf)
-	return fmt.Sprint(string(buf), " ", ctx.Args)
-}
-
 func (e *simpleExpr) String() string {
 	return expressionToString(e)
 }
 
-func (e *simpleExpr) writeExpression(ctx *ctx, buf []byte) []byte {
+func (e *simpleExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = writeValue(e.Left, ctx, buf)
 	buf = append(buf, e.Op...)
 	buf = writeValue(e.Right, ctx, buf)
@@ -78,7 +81,7 @@ func (e *eqExpr) String() string {
 	return expressionToString(e)
 }
 
-func (e *eqExpr) writeExpression(ctx *ctx, buf []byte) []byte {
+func (e *eqExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	lv, rv, eq := e.Left, e.Right, e.Eq
 	if lv == nil {
 		lv, rv = rv, nil
@@ -139,7 +142,7 @@ func (e *logicalExpr) String() string {
 	return expressionToString(e)
 }
 
-func (e *logicalExpr) writeExpression(ctx *ctx, buf []byte) []byte {
+func (e *logicalExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	switch len(e.Exprs) {
 	case 0:
 		buf = append(buf, "('empty' = '"...)
@@ -147,15 +150,15 @@ func (e *logicalExpr) writeExpression(ctx *ctx, buf []byte) []byte {
 		buf = append(buf, "')"...)
 		return buf
 	case 1:
-		return e.Exprs[0].writeExpression(ctx, buf)
+		return e.Exprs[0].WriteExpression(ctx, buf)
 	}
 	buf = append(buf, '(')
-	buf = e.Exprs[0].writeExpression(ctx, buf)
+	buf = e.Exprs[0].WriteExpression(ctx, buf)
 	buf = append(buf, ')')
 	for _, cd := range e.Exprs[1:] {
 		buf = append(buf, e.Op...)
 		buf = append(buf, '(')
-		buf = cd.writeExpression(ctx, buf)
+		buf = cd.WriteExpression(ctx, buf)
 		buf = append(buf, ')')
 	}
 	return buf
@@ -232,9 +235,12 @@ func Or(exprs ...Expression) Expressions {
 //
 // The basic how to use is similar to fmt.Print.
 // Please refer to the example for more details.
-func Unsafe(v ...interface{}) Expression {
+func Unsafe(v ...interface{}) UnsafeExpression {
 	return unsafeExpr(v)
 }
+
+// UnsafeExpression represents unsafe expression.
+type UnsafeExpression Expression
 
 type unsafeExpr []interface{}
 
@@ -242,11 +248,11 @@ func (e unsafeExpr) String() string {
 	return expressionToString(e)
 }
 
-func (e unsafeExpr) writeExpression(ctx *ctx, buf []byte) []byte {
+func (e unsafeExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	for _, i := range e {
 		switch v := i.(type) {
 		case Expression:
-			buf = v.writeExpression(ctx, buf)
+			buf = v.WriteExpression(ctx, buf)
 		case string:
 			buf = append(buf, v...)
 		case nil:
@@ -259,9 +265,7 @@ func (e unsafeExpr) writeExpression(ctx *ctx, buf []byte) []byte {
 }
 
 // Variable represents the argument to which is given from outside.
-type Variable interface {
-	Expression
-}
+type Variable Expression
 
 // V creates Variable from a single input.
 func V(v interface{}) Variable {
@@ -272,7 +276,7 @@ type variable struct {
 	V interface{}
 }
 
-func (v *variable) writeExpression(ctx *ctx, buf []byte) []byte {
+func (v *variable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	ctx.Args = append(ctx.Args, v.V)
 	return ctx.Placeholder.Next(buf)
 }
@@ -290,7 +294,7 @@ type inVariable struct {
 	V []interface{}
 }
 
-func (v *inVariable) writeExpression(ctx *ctx, buf []byte) []byte {
+func (v *inVariable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
 	buf = ctx.Placeholder.Next(buf)
 	for i, l := 1, len(v.V); i < l; i++ {

@@ -17,7 +17,7 @@ func Example() {
 		q.Eq(user.C("age"), 18),
 	)
 	// You can use sel by performing the following steps.
-	// sql, args := sel.ToSQL(q.PostgreSQL)
+	// sql, args := sel.SQL()
 	// rows, err := db.Query(sql.String(), args...)
 	// ...
 	fmt.Println(sel)
@@ -219,7 +219,8 @@ func ExampleSelectBuilder() {
 	).Where(
 		q.Eq(post.C("id"), 100),
 	)
-	fmt.Println(sel.ToSQL(q.MySQL))
+	// You can also use `q.DefaultDialect = q.MySQL` instead of SetDialect.
+	fmt.Println(sel.SetDialect(q.MySQL).SQL())
 	// Output:
 	// SELECT `user`.`name`, `post`.`message` FROM `post` INNER JOIN `user` ON `post`.`user_id` = `user`.`id` WHERE `post`.`id` = ? [100]
 }
@@ -251,13 +252,11 @@ func ExampleSelectBuilder_From() {
 	// Builder: SELECT * FROM (SELECT * FROM "post") []
 }
 
-// This is an example of how to use SelectBuilder.ToSQL.
-func ExampleSelectBuilder_ToSQL() {
-	fmt.Println(
-		q.Select().From(q.T("user")).Where(q.Lte(q.C("age"), 18)).ToSQL(q.MySQL),
-	)
+// This is an example of how to use SelectBuilder.SQL.
+func ExampleSelectBuilder_SQL() {
+	fmt.Println(q.Select().From(q.T("user")).Where(q.Lte(q.C("age"), 18)).SQL())
 	// Output:
-	// SELECT * FROM `user` WHERE `age` <= ? [18]
+	// SELECT * FROM "user" WHERE "age" <= ? [18]
 }
 
 // This is an example of how to use SelectBuilder.Where.

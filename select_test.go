@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+
+	"github.com/oov/q/qutil"
 )
 
-var testModel = map[dialect]struct {
+var testModel = map[qutil.Dialect]struct {
 	tester  Tester
 	creates []string
 	inserts []string
@@ -107,7 +109,7 @@ var testModel = map[dialect]struct {
 	},
 }
 
-func exec(t *testing.T, name string, db *sql.DB, d dialect, sqls []string) {
+func exec(t *testing.T, name string, db *sql.DB, d qutil.Dialect, sqls []string) {
 	for i, sql := range sqls {
 		if _, err := db.Exec(sql); err != nil {
 			t.Fatalf("%s %s[%d] %v", d, name, i, err)
@@ -314,7 +316,7 @@ func TestRealDB(t *testing.T) {
 	}
 
 	for _, testData := range testModel {
-		err := testData.tester(func(db *sql.DB, d dialect) {
+		err := testData.tester(func(db *sql.DB, d qutil.Dialect) {
 			defer exec(t, "drops", db, d, testData.drops)
 			exec(t, "drops", db, d, testData.drops)
 			exec(t, "creates", db, d, testData.creates)
@@ -322,7 +324,7 @@ func TestRealDB(t *testing.T) {
 
 			for i, test := range tests {
 				func() {
-					sql, args := test.s.ToSQL(d)
+					sql, args := test.s.SetDialect(d).SQL()
 					rows, err := db.Query(sql.String(), args...)
 					if err != nil {
 						t.Fatalf("%s test[%d] %s Error: %v\n%s", d, i, test.name, err, sql)

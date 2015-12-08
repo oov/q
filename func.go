@@ -1,16 +1,16 @@
 package q
 
+import "github.com/oov/q/qutil"
+
 // Function represents functions.
-type Function interface {
-	Expression
-}
+type Function Expression
 
 type function struct {
 	Name string
 	V    interface{}
 }
 
-func (f *function) writeExpression(ctx *ctx, buf []byte) []byte {
+func (f *function) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, f.Name...)
 	buf = append(buf, '(')
 	buf = writeValue(f.V, ctx, buf)
@@ -52,7 +52,7 @@ type charLengthFunc struct {
 	V interface{}
 }
 
-func (f *charLengthFunc) writeExpression(ctx *ctx, buf []byte) []byte {
+func (f *charLengthFunc) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, ctx.Dialect.CharLengthName()...)
 	buf = append(buf, '(')
 	buf = writeValue(f.V, ctx, buf)

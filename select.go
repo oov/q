@@ -3,6 +3,8 @@ package q
 
 import (
 	"fmt"
+
+	"github.com/oov/q/qutil"
 )
 
 // SQL represents a executable SQL statement.
@@ -14,7 +16,7 @@ type SQL interface {
 
 type sqlBytes []byte
 
-func (s sqlBytes) writeExpression(ctx *ctx, buf []byte) []byte {
+func (s sqlBytes) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
 	buf = append(buf, s...)
 	buf = append(buf, ')')
@@ -25,36 +27,20 @@ func (s sqlBytes) String() string {
 	return string(s)
 }
 
-type order struct {
-	Expression
-	Ascending bool
-}
-
-func (o *order) writeDefinition(ctx *ctx, buf []byte) []byte {
-	buf = o.Expression.writeExpression(ctx, buf)
-	if o.Ascending {
-		return append(buf, " ASC"...)
-	}
-	return append(buf, " DESC"...)
-}
-
-func (o *order) String() string {
-	buf, ctx := newDummyCtx(32, 1)
-	buf = o.writeDefinition(ctx, buf)
-	buf = append(buf, ' ')
-	return fmt.Sprint(string(buf), ctx.Args)
-}
-
 // SelectBuilder implemenets a SELECT builder.
 // This also implements Expression interface, so it can use in many place.
 type SelectBuilder struct {
-	Beginning   string
-	Columns     []Column
-	Tables      []Table
-	Wheres      Expressions
-	Groups      []Expression
-	Havings     Expressions
-	Orders      []order
+	Dialect   qutil.Dialect
+	Beginning string
+	Columns   []Column
+	Tables    []Table
+	Wheres    Expressions
+	Groups    []Expression
+	Havings   Expressions
+	Orders    []struct {
+		Expression
+		Ascending bool
+	}
 	LimitCount  Expression
 	StartOffset Expression
 }
@@ -73,6 +59,12 @@ func Select(beginning ...string) *SelectBuilder {
 		Wheres:    And(),
 		Havings:   And(),
 	}
+}
+
+// SetDialect sets a Dialect to the builder.
+func (b *SelectBuilder) SetDialect(d qutil.Dialect) *SelectBuilder {
+	b.Dialect = d
+	return b
 }
 
 // Column appends a column to the column list.
@@ -121,21 +113,24 @@ func (b *SelectBuilder) Having(conds ...Expression) *SelectBuilder {
 
 // OrderBy adds condition to the ORDER BY clause.
 func (b *SelectBuilder) OrderBy(e Expression, asc bool) *SelectBuilder {
-	b.Orders = append(b.Orders, order{Expression: e, Ascending: asc})
+	b.Orders = append(b.Orders, struct {
+		Expression
+		Ascending bool
+	}{e, asc})
 	return b
 }
 
-func (b *SelectBuilder) write(ctx *ctx, buf []byte) []byte {
+func (b *SelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, b.Beginning...)
 
 	if len(b.Columns) == 0 {
 		buf = append(buf, " *"...)
 	} else {
 		buf = append(buf, ' ')
-		buf = b.Columns[0].writeDefinition(ctx, buf)
+		buf = b.Columns[0].WriteDefinition(ctx, buf)
 		for _, c := range b.Columns[1:] {
 			buf = append(buf, ", "...)
-			buf = c.writeDefinition(ctx, buf)
+			buf = c.WriteDefinition(ctx, buf)
 		}
 	}
 
@@ -143,70 +138,83 @@ func (b *SelectBuilder) write(ctx *ctx, buf []byte) []byte {
 		// FROM DUAL?
 	} else {
 		buf = append(buf, " FROM "...)
-		buf = b.Tables[0].writeDefinition(ctx, buf)
+		buf = b.Tables[0].WriteDefinition(ctx, buf)
 		for _, t := range b.Tables[1:] {
 			buf = append(buf, ", "...)
-			buf = t.writeDefinition(ctx, buf)
+			buf = t.WriteDefinition(ctx, buf)
 		}
 	}
 
 	if b.Wheres.Len() > 0 {
 		buf = append(buf, " WHERE "...)
-		buf = b.Wheres.writeExpression(ctx, buf)
+		buf = b.Wheres.WriteExpression(ctx, buf)
 	}
 
 	if len(b.Groups) > 0 {
 		buf = append(buf, " GROUP BY "...)
-		buf = b.Groups[0].writeExpression(ctx, buf)
+		buf = b.Groups[0].WriteExpression(ctx, buf)
 		for _, g := range b.Groups[1:] {
 			buf = append(buf, ", "...)
-			buf = g.writeExpression(ctx, buf)
+			buf = g.WriteExpression(ctx, buf)
 		}
 	}
 
 	if b.Havings.Len() > 0 {
 		buf = append(buf, " HAVING "...)
-		buf = b.Havings.writeExpression(ctx, buf)
+		buf = b.Havings.WriteExpression(ctx, buf)
 	}
 
 	if len(b.Orders) > 0 {
 		buf = append(buf, " ORDER BY "...)
-		buf = b.Orders[0].writeDefinition(ctx, buf)
-		for _, o := range b.Orders[1:] {
-			buf = append(buf, ", "...)
-			buf = o.writeDefinition(ctx, buf)
+		for i, o := range b.Orders {
+			if i > 0 {
+				buf = append(buf, ", "...)
+			}
+			buf = o.Expression.WriteExpression(ctx, buf)
+			if o.Ascending {
+				buf = append(buf, " ASC"...)
+			} else {
+				buf = append(buf, " DESC"...)
+			}
 		}
 	}
 
 	if b.LimitCount != nil {
 		buf = append(buf, " LIMIT "...)
-		buf = b.LimitCount.writeExpression(ctx, buf)
+		buf = b.LimitCount.WriteExpression(ctx, buf)
 	}
 
 	if b.StartOffset != nil {
 		buf = append(buf, " OFFSET "...)
-		buf = b.StartOffset.writeExpression(ctx, buf)
+		buf = b.StartOffset.WriteExpression(ctx, buf)
 	}
 
 	return buf
 }
 
-// ToSQL builds SQL and arguments.
-func (b *SelectBuilder) ToSQL(d dialect) (SQL, []interface{}) {
-	buf, ctx := newCtx(128, 8, d)
+// SQL returns generated SQL and arguments.
+func (b *SelectBuilder) SQL() (SQL, []interface{}) {
+	var d qutil.Dialect
+	if b.Dialect != nil {
+		d = b.Dialect
+	} else {
+		d = DefaultDialect
+	}
+	buf, ctx := qutil.NewContext(b, 128, 8, d)
 	buf = b.write(ctx, buf)
 	return sqlBytes(buf), ctx.Args
 }
 
-// String implemenets fmt.Stringer interface.
+// String implements fmt.Stringer interface.
 func (b *SelectBuilder) String() string {
-	buf, ctx := newDummyCtx(128, 8)
+	buf, ctx := qutil.NewContext(b, 128, 8, nil)
 	buf = b.write(ctx, buf)
 	buf = append(buf, ' ')
 	return fmt.Sprint(string(buf), ctx.Args)
 }
 
-func (b *SelectBuilder) writeExpression(ctx *ctx, buf []byte) []byte {
+// WriteExpression implements Expression interface.
+func (b *SelectBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
 	buf = b.write(ctx, buf)
 	buf = append(buf, ')')

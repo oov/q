@@ -1,5 +1,7 @@
 package q
 
+import "github.com/oov/q/qutil"
+
 // CaseBuilder implements a CASE expression builder.
 // This also implements Expression interface, so it can use in many place.
 type CaseBuilder struct {
@@ -36,12 +38,13 @@ func (b *CaseBuilder) Else(then interface{}) *CaseBuilder {
 	return b
 }
 
-func (b *CaseBuilder) writeExpression(ctx *ctx, buf []byte) []byte {
+// WriteExpression implements Expression interface.
+func (b *CaseBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	if len(b.WhenThen) == 0 {
 		// If valid CASE expression can't be generated,
 		// then returns a result of ELSE clause.
 		if b.ElseThen != nil {
-			return b.ElseThen.writeExpression(ctx, buf)
+			return b.ElseThen.WriteExpression(ctx, buf)
 		}
 		return append(buf, "NULL"...)
 	}
@@ -49,17 +52,17 @@ func (b *CaseBuilder) writeExpression(ctx *ctx, buf []byte) []byte {
 	buf = append(buf, "CASE"...)
 	if b.Base != nil {
 		buf = append(buf, ' ')
-		buf = b.Base.writeExpression(ctx, buf)
+		buf = b.Base.WriteExpression(ctx, buf)
 	}
 	for _, wt := range b.WhenThen {
 		buf = append(buf, " WHEN "...)
-		buf = wt[0].writeExpression(ctx, buf)
+		buf = wt[0].WriteExpression(ctx, buf)
 		buf = append(buf, " THEN "...)
-		buf = wt[1].writeExpression(ctx, buf)
+		buf = wt[1].WriteExpression(ctx, buf)
 	}
 	if b.ElseThen != nil {
 		buf = append(buf, " ELSE "...)
-		buf = b.ElseThen.writeExpression(ctx, buf)
+		buf = b.ElseThen.WriteExpression(ctx, buf)
 	}
 	return append(buf, " END"...)
 }

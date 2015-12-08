@@ -6,7 +6,7 @@ import (
 
 func TestSelect(t *testing.T) {
 	rq, rv := sqlBytes("SELECT * FROM `table` WHERE `test` = ?"), []interface{}{1}
-	query, values := Select().From(T("table")).Where(Eq(C("test"), 1)).ToSQL(MySQL)
+	query, values := Select().From(T("table")).Where(Eq(C("test"), 1)).SetDialect(MySQL).SQL()
 	if query.String() != rq.String() {
 		t.Errorf("query: want %q got %q", rq, query)
 	}

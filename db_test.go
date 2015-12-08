@@ -11,11 +11,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/oov/dockertest"
+	"github.com/oov/q/qutil"
 )
 
-type Tester func(func(*sql.DB, dialect)) error
+type Tester func(func(*sql.DB, qutil.Dialect)) error
 
-func mySQLTest(f func(db *sql.DB, d dialect)) error {
+func mySQLTest(f func(*sql.DB, qutil.Dialect)) error {
 	const (
 		User     = "username"
 		Password = "password"
@@ -57,7 +58,7 @@ func mySQLTest(f func(db *sql.DB, d dialect)) error {
 	return nil
 }
 
-func postgreSQLTest(f func(db *sql.DB, d dialect)) error {
+func postgreSQLTest(f func(*sql.DB, qutil.Dialect)) error {
 	const (
 		User     = "username"
 		Password = "mypassword"
@@ -107,7 +108,7 @@ ping:
 	return nil
 }
 
-func sqliteTest(f func(db *sql.DB, d dialect)) error {
+func sqliteTest(f func(*sql.DB, qutil.Dialect)) error {
 	db, err := sql.Open("sqlite3", ":memory:?_loc=auto")
 	if err != nil {
 		return err
@@ -123,21 +124,21 @@ func sqliteTest(f func(db *sql.DB, d dialect)) error {
 }
 
 func TestMySQLTester(t *testing.T) {
-	err := mySQLTest(func(*sql.DB, dialect) {})
+	err := mySQLTest(func(*sql.DB, qutil.Dialect) {})
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestPostgreSQLTester(t *testing.T) {
-	err := postgreSQLTest(func(*sql.DB, dialect) {})
+	err := postgreSQLTest(func(*sql.DB, qutil.Dialect) {})
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestSQLiteTester(t *testing.T) {
-	err := sqliteTest(func(*sql.DB, dialect) {})
+	err := sqliteTest(func(*sql.DB, qutil.Dialect) {})
 	if err != nil {
 		t.Fatal(err)
 	}
