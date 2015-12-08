@@ -352,9 +352,8 @@ func ExampleDeleteBuilder() {
 }
 
 func ExampleUpdateBuilder() {
-	user := q.T("user")
-	upd := q.Update(user).Set(user.C("name"), "hackme").Where(q.Eq(user.C("id"), 1))
+	upd := q.Update(q.T("user")).Set(q.C("name"), "hackme").Where(q.Eq(q.C("id"), 1))
 	fmt.Println(upd)
 	// Output:
-	// DELETE FROM "user" WHERE "user"."id" = ? [1]
+	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 }

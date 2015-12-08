@@ -8,13 +8,6 @@ import (
 )
 
 // Expression represents expressions.
-// The relations of function names and signs are:
-//	Eq  =
-// 	Neq !=
-// 	Gt  >
-// 	Gte >=
-// 	Lt  <
-// 	Lte <=
 type Expression interface {
 	// C creates Column from Expression.
 	C(aliasName ...string) Column
