@@ -324,7 +324,7 @@ func TestRealDB(t *testing.T) {
 
 			for i, test := range tests {
 				func() {
-					sql, args := test.s.SetDialect(d).SQL()
+					sql, args := test.s.SetDialect(d).ToSQL()
 					rows, err := db.Query(sql, args...)
 					if err != nil {
 						t.Fatalf("%s test[%d] %s Error: %v\n%s", d, i, test.name, err, sql)

@@ -35,7 +35,7 @@ func TestSelectFrom(t *testing.T) {
 		for _, ps := range test.params {
 			sel.From(T(ps[0], ps[1:]...))
 		}
-		if q, _ := sel.SetDialect(MySQL).SQL(); q != test.q {
+		if q, _ := sel.SetDialect(MySQL).ToSQL(); q != test.q {
 			t.Errorf("tests[%d]: want %q got %q", i, test.q, q)
 		}
 	}

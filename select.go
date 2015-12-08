@@ -172,8 +172,8 @@ func (b *SelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	return buf
 }
 
-// SQL returns generated SQL and arguments.
-func (b *SelectBuilder) SQL() (string, []interface{}) {
+// ToSQL returns generated SQL and arguments.
+func (b *SelectBuilder) ToSQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect

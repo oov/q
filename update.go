@@ -82,8 +82,8 @@ func (b *UpdateBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	return buf
 }
 
-// SQL builds SQL and arguments.
-func (b *UpdateBuilder) SQL() (string, []interface{}) {
+// ToSQL builds SQL and arguments.
+func (b *UpdateBuilder) ToSQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect

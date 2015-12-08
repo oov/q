@@ -226,7 +226,7 @@ func ExampleSelectBuilder() {
 		q.Eq(post.C("id"), 100),
 	)
 	// You can also use `q.DefaultDialect = q.MySQL` instead of SetDialect.
-	fmt.Println(sel.SetDialect(q.MySQL).SQL())
+	fmt.Println(sel.SetDialect(q.MySQL).ToSQL())
 	// Output:
 	// SELECT `user`.`name`, `post`.`message` FROM `post` INNER JOIN `user` ON `post`.`user_id` = `user`.`id` WHERE `post`.`id` = ? [100]
 }
@@ -260,7 +260,7 @@ func ExampleSelectBuilder_From() {
 
 // This is an example of how to use SelectBuilder.SQL.
 func ExampleSelectBuilder_SQL() {
-	fmt.Println(q.Select().From(q.T("user")).Where(q.Lte(q.C("age"), 18)).SQL())
+	fmt.Println(q.Select().From(q.T("user")).Where(q.Lte(q.C("age"), 18)).ToSQL())
 	// Output:
 	// SELECT * FROM "user" WHERE "age" <= ? [18]
 }

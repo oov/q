@@ -57,8 +57,8 @@ func (b *DeleteBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	return buf
 }
 
-// SQL builds SQL and arguments.
-func (b *DeleteBuilder) SQL() (string, []interface{}) {
+// ToSQL builds SQL and arguments.
+func (b *DeleteBuilder) ToSQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect
