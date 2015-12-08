@@ -7,7 +7,7 @@ import (
 )
 
 // Table represents database table.
-// You can create it from T.
+// You can create it from T or *SelectBuilder.T.
 type Table interface {
 	C(columnName string, aliasName ...string) Column
 
@@ -120,11 +120,11 @@ func (t *tableAlias) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 	return ctx.Dialect.Quote(buf, t.Alias)
 }
 
-func (t *tableAlias) WriteDefinition(c *qutil.Context, buf []byte) []byte {
-	buf = t.Table.WriteTable(c, buf)
+func (t *tableAlias) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	buf = t.Table.WriteTable(ctx, buf)
 	buf = append(buf, " AS "...)
-	buf = t.WriteTable(c, buf)
-	buf = t.WriteJoins(c, buf)
+	buf = t.WriteTable(ctx, buf)
+	buf = t.WriteJoins(ctx, buf)
 	return buf
 }
 
@@ -222,27 +222,9 @@ func (t *selectBuilderAsTable) CrossJoin(table Table, conds ...Expression) Table
 	return t
 }
 
-// T creates Table. You can pass the following types:
-//	string
-//	*q.SelectBuilder
-func T(t interface{}, aliasName ...string) Table {
-	var r Table
-	switch v := t.(type) {
-	case *SelectBuilder:
-		r = &selectBuilderAsTable{SelectBuilder: v}
-	case *tableAlias:
-		// prevents double wrapping
-		if len(aliasName) > 0 {
-			v.Alias = aliasName[0]
-		}
-		return v
-	case Table:
-		r = v
-	case string:
-		r = &table{Table: v}
-	default:
-		panic(fmt.Sprintf("q: %T is not a valid table type", t))
-	}
+// T creates Table.
+func T(tableName string, aliasName ...string) Table {
+	r := &table{Table: tableName}
 	if len(aliasName) == 0 {
 		return r
 	}

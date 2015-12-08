@@ -10,6 +10,10 @@ type function struct {
 	V    interface{}
 }
 
+func (f *function) C(aliasName ...string) Column {
+	return columnExpr(f, aliasName...)
+}
+
 func (f *function) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, f.Name...)
 	buf = append(buf, '(')
@@ -50,6 +54,10 @@ func Sum(v interface{}) Function {
 
 type charLengthFunc struct {
 	V interface{}
+}
+
+func (f *charLengthFunc) C(aliasName ...string) Column {
+	return columnExpr(f, aliasName...)
 }
 
 func (f *charLengthFunc) WriteExpression(ctx *qutil.Context, buf []byte) []byte {

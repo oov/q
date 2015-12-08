@@ -7,7 +7,7 @@ import (
 )
 
 // Column represents database table column.
-// You can create it from C or Table.C.
+// You can create it from C or Table.C or Expression.C.
 type Column interface {
 	Expression
 
@@ -56,6 +56,13 @@ func (c column) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	return c.WriteColumn(ctx, buf)
 }
 
+func (c column) C(aliasName ...string) Column {
+	if len(aliasName) > 0 {
+		return &columnAlias{c, aliasName[0]}
+	}
+	return c
+}
+
 func (c column) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
 	return c.WriteColumn(ctx, buf)
 }
@@ -74,6 +81,13 @@ func (c *columnWithTable) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '.')
 	buf = ctx.Dialect.Quote(buf, string(c.column))
 	return buf
+}
+
+func (c *columnWithTable) C(aliasName ...string) Column {
+	if len(aliasName) > 0 {
+		return &columnAlias{c, aliasName[0]}
+	}
+	return c
 }
 
 func (c *columnWithTable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
@@ -104,26 +118,10 @@ func (c *exprAsColumn) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
 	return c.Expression.WriteExpression(ctx, buf)
 }
 
-// C creates database table column.
-// You can pass the following types:
-//	string
-//	q.Expression
-func C(c interface{}, aliasName ...string) Column {
-	var r Column
-	switch v := c.(type) {
-	case *columnAlias:
-		return v // prevents double wrapping
-	case Column:
-		r = v
-	case Expression:
-		r = &exprAsColumn{v}
-	case string:
-		r = column(v)
-	default:
-		panic(fmt.Sprintf("q: %T is not a valid column type", c))
-	}
+// C creates Column.
+func C(columnName string, aliasName ...string) Column {
 	if len(aliasName) == 0 {
-		return r
+		return column(columnName)
 	}
-	return &columnAlias{Column: r, Alias: aliasName[0]}
+	return &columnAlias{column(columnName), aliasName[0]}
 }

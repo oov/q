@@ -16,6 +16,8 @@ import (
 // 	Lt  <
 // 	Lte <=
 type Expression interface {
+	// C creates Column from Expression.
+	C(aliasName ...string) Column
 	// for internal use.
 	WriteExpression(ctx *qutil.Context, buf []byte) []byte
 }
@@ -31,6 +33,14 @@ func interfaceToExpression(x interface{}) Expression {
 		return v
 	}
 	return V(x)
+}
+
+func columnExpr(e Expression, aliasName ...string) Column {
+	r := &exprAsColumn{e}
+	if len(aliasName) == 0 {
+		return r
+	}
+	return &columnAlias{Column: r, Alias: aliasName[0]}
 }
 
 // Expressions represents combination of an expression.
@@ -64,6 +74,10 @@ func (e *simpleExpr) String() string {
 	return expressionToString(e)
 }
 
+func (e *simpleExpr) C(aliasName ...string) Column {
+	return columnExpr(e, aliasName...)
+}
+
 func (e *simpleExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = writeValue(e.Left, ctx, buf)
 	buf = append(buf, e.Op...)
@@ -79,6 +93,10 @@ type eqExpr struct {
 
 func (e *eqExpr) String() string {
 	return expressionToString(e)
+}
+
+func (e *eqExpr) C(aliasName ...string) Column {
+	return columnExpr(e, aliasName...)
 }
 
 func (e *eqExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
@@ -140,6 +158,10 @@ type logicalExpr struct {
 
 func (e *logicalExpr) String() string {
 	return expressionToString(e)
+}
+
+func (e *logicalExpr) C(aliasName ...string) Column {
+	return columnExpr(e, aliasName...)
 }
 
 func (e *logicalExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
@@ -248,6 +270,10 @@ func (e unsafeExpr) String() string {
 	return expressionToString(e)
 }
 
+func (e unsafeExpr) C(aliasName ...string) Column {
+	return columnExpr(e, aliasName...)
+}
+
 func (e unsafeExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	for _, i := range e {
 		switch v := i.(type) {
@@ -276,6 +302,10 @@ type variable struct {
 	V interface{}
 }
 
+func (v *variable) C(aliasName ...string) Column {
+	return columnExpr(v, aliasName...)
+}
+
 func (v *variable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	ctx.Args = append(ctx.Args, v.V)
 	return ctx.Placeholder.Next(buf)
@@ -292,6 +322,10 @@ func InV(v ...interface{}) Variable {
 
 type inVariable struct {
 	V []interface{}
+}
+
+func (v *inVariable) C(aliasName ...string) Column {
+	return columnExpr(v, aliasName...)
 }
 
 func (v *inVariable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {

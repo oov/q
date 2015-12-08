@@ -38,6 +38,11 @@ func (b *CaseBuilder) Else(then interface{}) *CaseBuilder {
 	return b
 }
 
+// C implements Expression interface.
+func (b *CaseBuilder) C(aliasName ...string) Column {
+	return columnExpr(b, aliasName...)
+}
+
 // WriteExpression implements Expression interface.
 func (b *CaseBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	if len(b.WhenThen) == 0 {

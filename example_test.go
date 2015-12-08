@@ -29,19 +29,16 @@ func Example_complicated() {
 	user := q.T("user", "u")
 	age := user.C("age")
 	sel := q.Select().From(user).Column(
-		q.C(
-			q.Sum(
-				q.Case().When(
-					q.And(
-						q.Gte(age, 13),
-						q.Lte(age, 19),
-					),
-					1,
-				).Else(0),
-			),
-			"teen",
-		),
-		q.C(q.Sum(q.Case().When(q.Gte(age, 20), 1).Else(0)), "adult"),
+		q.Sum(
+			q.Case().When(
+				q.And(
+					q.Gte(age, 13),
+					q.Lte(age, 19),
+				),
+				1,
+			).Else(0),
+		).C("teen"),
+		q.Sum(q.Case().When(q.Gte(age, 20), 1).Else(0)).C("adult"),
 	)
 	fmt.Println(sel)
 	// Output:
@@ -52,8 +49,8 @@ func Example_unsafe() {
 	user := q.T("user", "u")
 	age := user.C("age")
 	sel := q.Select().From(user).Column(
-		q.C(q.Unsafe(`SUM(CASE WHEN (`, age, ` >= 13)AND(`, age, ` <= 19) THEN 1 ELSE 0 END)`), "teen"),
-		q.C(q.Unsafe(`SUM(CASE WHEN `, age, ` >= 20 THEN 1 ELSE 0 END)`), "adult"),
+		q.Unsafe(`SUM(CASE WHEN (`, age, ` >= 13)AND(`, age, ` <= 19) THEN 1 ELSE 0 END)`).C("teen"),
+		q.Unsafe(`SUM(CASE WHEN `, age, ` >= 20 THEN 1 ELSE 0 END)`).C("adult"),
 	)
 	fmt.Println(sel)
 
@@ -73,12 +70,13 @@ func Example_unsafe() {
 	// SELECT * FROM "user" AS "u" WHERE ("u"."last_name" = ?)AND("u"."last_name" = ?)AND("u"."last_name" = '' OR '' = '') [' OR '' = ' ' OR '' = ']
 }
 
-// This is an example of how to use C.
-// Actually, using Table.C is more useful in many cases than using Column directly because Table.C adds the table name before column name.
-func ExampleC() {
-	fmt.Println("string:              ", q.C("id"))
-	fmt.Println("string + alias:      ", q.C("age", "ag"))
-	fmt.Println("q.Expression + alias:", q.C(q.CountAll(), "cnt"))
+func ExampleColumn() {
+	fmt.Println("q.C(name):              ", q.C("id"))
+	fmt.Println("q.C(name, alias):       ", q.C("age", "ag"))
+	fmt.Println("Table.C(name):          ", q.T("user").C("age"))
+	fmt.Println("Table.C(name, alias):   ", q.T("user").C("age", "ag"))
+	fmt.Println("Expression.C():         ", q.CountAll().C())
+	fmt.Println("Expression.C(alias):    ", q.CountAll().C("cnt"))
 
 	country := q.T("country")
 	sel := q.Select().Column(
@@ -88,12 +86,27 @@ func ExampleC() {
 	).Where(
 		q.Eq(country.C("id"), 100),
 	)
-	fmt.Println("Builder + alias:     ", q.C(sel, "cname"))
+	fmt.Println("*SelectBuilder.C():     ", sel.C())
+	fmt.Println("*SelectBuilder.C(alias):", sel.C("cname"))
 	// Output:
-	// string:               "id" []
-	// string + alias:       "age" AS "ag" []
-	// q.Expression + alias: COUNT(*) AS "cnt" []
-	// Builder + alias:      (SELECT "country"."name" FROM "country" WHERE "country"."id" = ?) AS "cname" [100]
+	// q.C(name):               "id" []
+	// q.C(name, alias):        "age" AS "ag" []
+	// Table.C(name):           "user"."age" []
+	// Table.C(name, alias):    "user"."age" AS "ag" []
+	// Expression.C():          COUNT(*) []
+	// Expression.C(alias):     COUNT(*) AS "cnt" []
+	// *SelectBuilder.C():      (SELECT "country"."name" FROM "country" WHERE "country"."id" = ?) [100]
+	// *SelectBuilder.C(alias): (SELECT "country"."name" FROM "country" WHERE "country"."id" = ?) AS "cname" [100]
+}
+
+// This is an example of how to use C.
+// Actually, using Table.C is more useful in many cases than using C directly because Table.C adds the table name before column name.
+func ExampleC() {
+	fmt.Println("name:        ", q.C("id"))
+	fmt.Println("name + alias:", q.C("age", "ag"))
+	// Output:
+	// name:         "id" []
+	// name + alias: "age" AS "ag" []
 }
 
 // This is an example of how to use Table.InnerJoin.
@@ -118,18 +131,11 @@ func ExampleTable() {
 
 // This is an example of how to use T.
 func ExampleT() {
-	fmt.Println("string:         ", q.T("user"))
-	fmt.Println("string + alias: ", q.T("user", "usr"))
-
-	user := q.T("user")
-	sel := q.Select().From(user).Where(q.Eq(user.C("deleted"), 1))
-	fmt.Println("Builder:        ", q.T(sel))
-	fmt.Println("Builder + alias:", q.T(sel, "usr"))
+	fmt.Println("name:        ", q.T("user"))
+	fmt.Println("name + alias:", q.T("user", "usr"))
 	// Output:
-	// string:          "user" []
-	// string + alias:  "user" AS "usr" []
-	// Builder:         (SELECT * FROM "user" WHERE "user"."deleted" = ?) [1]
-	// Builder + alias: (SELECT * FROM "user" WHERE "user"."deleted" = ?) AS "usr" [1]
+	// name:         "user" []
+	// name + alias: "user" AS "usr" []
 }
 
 // This is an example of how to use Expression.
@@ -230,7 +236,7 @@ func ExampleSelectBuilder_Column() {
 	user := q.T("user")
 	fmt.Println("Default:  ", q.Select().From(user))
 	fmt.Println("Append:   ", q.Select().Column(user.C("id")).From(user))
-	fmt.Println("Aggregate:", q.Select().Column(q.C(q.CountAll(), "count")).From(user))
+	fmt.Println("Aggregate:", q.Select().Column(q.CountAll().C("count")).From(user))
 	// Output:
 	// Default:   SELECT * FROM "user" []
 	// Append:    SELECT "user"."id" FROM "user" []
@@ -245,7 +251,7 @@ func ExampleSelectBuilder_From() {
 	fmt.Println("Complex:", q.Select().From(user, post).Where(
 		q.Eq(user.C("id"), post.C("user_id")),
 	))
-	fmt.Println("Builder:", q.Select().From(q.T(q.Select().From(q.T("post")))))
+	fmt.Println("Builder:", q.Select().From(q.Select().From(q.T("post")).T()))
 	// Output:
 	// Simple:  SELECT * FROM "user" []
 	// Complex: SELECT * FROM "user", "post" WHERE "user"."id" = "post"."user_id" []
@@ -314,7 +320,7 @@ func ExampleSelectBuilder_OrderBy() {
 func ExampleSelectBuilder_GroupBy() {
 	user := q.T("user")
 	fmt.Println(
-		q.Select().Column(q.C(q.CountAll(), "count")).From(user).GroupBy(user.C("age")),
+		q.Select().Column(q.CountAll().C("count")).From(user).GroupBy(user.C("age")),
 	)
 	// Output:
 	// SELECT COUNT(*) AS "count" FROM "user" GROUP BY "user"."age" []
@@ -330,8 +336,25 @@ func ExampleCaseBuilder() {
 		0,
 	)
 	fmt.Println(cs)
-	fmt.Println(q.Select().From(user).Column(q.C(cs, "bonus")))
+	fmt.Println(q.Select().From(user).Column(cs.C("bonus")))
 	// Output:
 	// CASE WHEN "user"."id" = ? THEN ? ELSE ? END [100 10 0]
 	// SELECT CASE WHEN "user"."id" = ? THEN ? ELSE ? END AS "bonus" FROM "user" [100 10 0]
+}
+
+func ExampleDeleteBuilder() {
+	user := q.T("user")
+	del := q.Delete(user).Where(q.Eq(user.C("id"), 1))
+	// del := q.Delete().From(user).Where(q.Eq(user.C("id"), 1)) // same
+	fmt.Println(del)
+	// Output:
+	// DELETE FROM "user" WHERE "user"."id" = ? [1]
+}
+
+func ExampleUpdateBuilder() {
+	user := q.T("user")
+	upd := q.Update(user).Set(user.C("name"), "hackme").Where(q.Eq(user.C("id"), 1))
+	fmt.Println(upd)
+	// Output:
+	// DELETE FROM "user" WHERE "user"."id" = ? [1]
 }

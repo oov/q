@@ -193,6 +193,20 @@ func (b *SelectBuilder) String() string {
 	return fmt.Sprint(string(buf), ctx.Args)
 }
 
+// T creates Table from this builder.
+func (b *SelectBuilder) T(aliasName ...string) Table {
+	r := &selectBuilderAsTable{SelectBuilder: b}
+	if len(aliasName) == 0 {
+		return r
+	}
+	return &tableAlias{Table: r, Alias: aliasName[0]}
+}
+
+// C implements Expression interface.
+func (b *SelectBuilder) C(aliasName ...string) Column {
+	return columnExpr(b, aliasName...)
+}
+
 // WriteExpression implements Expression interface.
 func (b *SelectBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
