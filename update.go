@@ -12,6 +12,7 @@ type UpdateBuilder struct {
 	Beginning string
 	Table     Table
 	Sets      []struct {
+		Name string
 		Column
 		Expression
 	}
@@ -39,12 +40,49 @@ func (b *UpdateBuilder) SetDialect(d qutil.Dialect) *UpdateBuilder {
 	return b
 }
 
+func (b *UpdateBuilder) find(c Column) (int, string) {
+	buf, ctx := qutil.NewContext(b, 32, 0, nil)
+	ctx.CUD = true
+	name := string(c.WriteColumn(ctx, buf))
+	for i, s := range b.Sets {
+		if name == s.Name {
+			return i, name
+		}
+	}
+	return -1, name
+}
+
 // Set adds assignment expression to the SET clause.
 func (b *UpdateBuilder) Set(c Column, v interface{}) *UpdateBuilder {
+	i, name := b.find(c)
+	if i != -1 {
+		b.Sets[i].Column = c
+		b.Sets[i].Expression = interfaceToExpression(v)
+		return b
+	}
 	b.Sets = append(b.Sets, struct {
+		Name string
 		Column
 		Expression
-	}{c, interfaceToExpression(v)})
+	}{name, c, interfaceToExpression(v)})
+	return b
+}
+
+// Unset removes assignment expression from the SET clause.
+func (b *UpdateBuilder) Unset(c Column) *UpdateBuilder {
+	i, _ := b.find(c)
+	if i == -1 {
+		return b
+	}
+	if i == 0 {
+		b.Sets = b.Sets[1:]
+		return b
+	}
+	if i == len(b.Sets)-1 {
+		b.Sets = b.Sets[:len(b.Sets)-1]
+		return b
+	}
+	b.Sets = append(b.Sets[:i], b.Sets[i+1:]...)
 	return b
 }
 

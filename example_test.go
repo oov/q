@@ -364,7 +364,10 @@ func ExampleUpdateBuilder() {
 	// because Insert, Delete and Update aren't supporting "AS" syntax.
 	u := q.T("user", "u")
 	fmt.Println(q.Update(u).Set(u.C("name"), "hackme").Where(q.Eq(u.C("id"), 1)))
+	// When overwriting in the same name, the last one is effective.
+	fmt.Println(q.Update(u).Set(u.C("name"), "hackyou").Set(u.C("name"), "hackme").Where(q.Eq(u.C("id"), 1)))
 	// Output:
+	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 }
