@@ -2,29 +2,29 @@ package q
 
 import "github.com/oov/q/qutil"
 
-// CaseBuilder implements a CASE expression builder.
+// ZCaseBuilder implements a CASE expression builder.
 // This also implements Expression interface, so it can use in many place.
-type CaseBuilder struct {
+type ZCaseBuilder struct {
 	Base     Expression
 	WhenThen [][2]Expression
 	ElseThen Expression
 }
 
-// Case creates CaseBuilder.
+// Case creates ZCaseBuilder.
 // If omitting an argument, it'll be a searched CASE builder.
 //	Simple CASE:
 //		CASE base WHEN 0 THEN 'false' THEN 1 THEN 'true' END
 //	Searched CASE:
 //		CASE WHEN base = 0 THEN 'false' THEN base = 1 THEN 'true' END
-func Case(base ...Expression) *CaseBuilder {
+func Case(base ...Expression) *ZCaseBuilder {
 	if len(base) > 0 {
-		return &CaseBuilder{Base: base[0]}
+		return &ZCaseBuilder{Base: base[0]}
 	}
-	return &CaseBuilder{}
+	return &ZCaseBuilder{}
 }
 
 // When adds "WHEN cond THEN then" to the builder.
-func (b *CaseBuilder) When(cond, then interface{}) *CaseBuilder {
+func (b *ZCaseBuilder) When(cond, then interface{}) *ZCaseBuilder {
 	b.WhenThen = append(b.WhenThen, [2]Expression{
 		interfaceToExpression(cond),
 		interfaceToExpression(then),
@@ -33,18 +33,18 @@ func (b *CaseBuilder) When(cond, then interface{}) *CaseBuilder {
 }
 
 // Else sets "ELSE then" to the builder.
-func (b *CaseBuilder) Else(then interface{}) *CaseBuilder {
+func (b *ZCaseBuilder) Else(then interface{}) *ZCaseBuilder {
 	b.ElseThen = interfaceToExpression(then)
 	return b
 }
 
 // C implements Expression interface.
-func (b *CaseBuilder) C(aliasName ...string) Column {
+func (b *ZCaseBuilder) C(aliasName ...string) Column {
 	return columnExpr(b, aliasName...)
 }
 
 // WriteExpression implements Expression interface.
-func (b *CaseBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+func (b *ZCaseBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	if len(b.WhenThen) == 0 {
 		// If valid CASE expression can't be generated,
 		// then returns a result of ELSE clause.
@@ -73,6 +73,6 @@ func (b *CaseBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 }
 
 // String implements fmt.Stringer interface.
-func (b *CaseBuilder) String() string {
+func (b *ZCaseBuilder) String() string {
 	return expressionToString(b)
 }

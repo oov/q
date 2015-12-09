@@ -6,8 +6,8 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-// UpdateBuilder implements a UPDATE builder.
-type UpdateBuilder struct {
+// ZUpdateBuilder implements a UPDATE builder.
+type ZUpdateBuilder struct {
 	Dialect   qutil.Dialect
 	Beginning string
 	Table     Table
@@ -19,15 +19,15 @@ type UpdateBuilder struct {
 	Wheres Expressions
 }
 
-// Update creates UpdateBuilder.
-func Update(table Table, beginning ...string) *UpdateBuilder {
+// Update creates ZUpdateBuilder.
+func Update(table Table, beginning ...string) *ZUpdateBuilder {
 	var b string
 	if len(beginning) > 0 {
 		b = beginning[0]
 	} else {
 		b = "UPDATE"
 	}
-	return &UpdateBuilder{
+	return &ZUpdateBuilder{
 		Beginning: b,
 		Table:     table,
 		Wheres:    And(),
@@ -35,12 +35,12 @@ func Update(table Table, beginning ...string) *UpdateBuilder {
 }
 
 // SetDialect sets a Dialect to the builder.
-func (b *UpdateBuilder) SetDialect(d qutil.Dialect) *UpdateBuilder {
+func (b *ZUpdateBuilder) SetDialect(d qutil.Dialect) *ZUpdateBuilder {
 	b.Dialect = d
 	return b
 }
 
-func (b *UpdateBuilder) find(c Column) (int, string) {
+func (b *ZUpdateBuilder) find(c Column) (int, string) {
 	buf, ctx := qutil.NewContext(b, 32, 0, nil)
 	ctx.CUD = true
 	name := string(c.WriteColumn(ctx, buf))
@@ -53,7 +53,7 @@ func (b *UpdateBuilder) find(c Column) (int, string) {
 }
 
 // Set adds assignment expression to the SET clause.
-func (b *UpdateBuilder) Set(c Column, v interface{}) *UpdateBuilder {
+func (b *ZUpdateBuilder) Set(c Column, v interface{}) *ZUpdateBuilder {
 	i, name := b.find(c)
 	if i != -1 {
 		b.Sets[i].Column = c
@@ -69,7 +69,7 @@ func (b *UpdateBuilder) Set(c Column, v interface{}) *UpdateBuilder {
 }
 
 // Unset removes assignment expression from the SET clause.
-func (b *UpdateBuilder) Unset(c Column) *UpdateBuilder {
+func (b *ZUpdateBuilder) Unset(c Column) *ZUpdateBuilder {
 	i, _ := b.find(c)
 	if i == -1 {
 		return b
@@ -88,12 +88,12 @@ func (b *UpdateBuilder) Unset(c Column) *UpdateBuilder {
 
 // Where adds condition to the WHERE clause.
 // More than one condition is connected by AND.
-func (b *UpdateBuilder) Where(conds ...Expression) *UpdateBuilder {
+func (b *ZUpdateBuilder) Where(conds ...Expression) *ZUpdateBuilder {
 	b.Wheres.Add(conds...)
 	return b
 }
 
-func (b *UpdateBuilder) write(ctx *qutil.Context, buf []byte) []byte {
+func (b *ZUpdateBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	if len(b.Sets) == 0 {
 		panic("q: need at least one assignment expression to generate UPDATE statements.")
 	}
@@ -121,7 +121,7 @@ func (b *UpdateBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 }
 
 // ToSQL builds SQL and arguments.
-func (b *UpdateBuilder) ToSQL() (string, []interface{}) {
+func (b *ZUpdateBuilder) ToSQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect
@@ -135,7 +135,7 @@ func (b *UpdateBuilder) ToSQL() (string, []interface{}) {
 }
 
 // String implemenets fmt.Stringer interface.
-func (b *UpdateBuilder) String() string {
+func (b *ZUpdateBuilder) String() string {
 	buf, ctx := qutil.NewContext(b, 128, 8, nil)
 	ctx.CUD = true
 	buf = b.write(ctx, buf)

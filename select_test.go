@@ -137,7 +137,7 @@ func TestRealDB(t *testing.T) {
 
 	tests := []struct {
 		name string
-		s    *SelectBuilder
+		s    *ZSelectBuilder
 		cols []string
 		vals [][]string
 	}{
@@ -152,7 +152,7 @@ func TestRealDB(t *testing.T) {
 		},
 		{
 			name: "Single Join",
-			s: func() *SelectBuilder {
+			s: func() *ZSelectBuilder {
 				user, post := T("user", "u"), T("post", "p")
 				return Select().From(post.InnerJoin(
 					user,
@@ -169,7 +169,7 @@ func TestRealDB(t *testing.T) {
 		},
 		{
 			name: "Multiple Join",
-			s: func() *SelectBuilder {
+			s: func() *ZSelectBuilder {
 				post, posttag, tag := T("post", "p"), T("posttag", "pt"), T("tag", "t")
 				return Select().Column(
 					post.C("id", "i"),

@@ -71,12 +71,12 @@ func Example_unsafe() {
 }
 
 func ExampleColumn() {
-	fmt.Println("q.C(name):              ", q.C("id"))
-	fmt.Println("q.C(name, alias):       ", q.C("age", "ag"))
-	fmt.Println("Table.C(name):          ", q.T("user").C("age"))
-	fmt.Println("Table.C(name, alias):   ", q.T("user").C("age", "ag"))
-	fmt.Println("Expression.C():         ", q.CountAll().C())
-	fmt.Println("Expression.C(alias):    ", q.CountAll().C("cnt"))
+	fmt.Println("q.C(name):               ", q.C("id"))
+	fmt.Println("q.C(name, alias):        ", q.C("age", "ag"))
+	fmt.Println("Table.C(name):           ", q.T("user").C("age"))
+	fmt.Println("Table.C(name, alias):    ", q.T("user").C("age", "ag"))
+	fmt.Println("Expression.C():          ", q.CountAll().C())
+	fmt.Println("Expression.C(alias):     ", q.CountAll().C("cnt"))
 
 	country := q.T("country")
 	sel := q.Select().Column(
@@ -86,17 +86,17 @@ func ExampleColumn() {
 	).Where(
 		q.Eq(country.C("id"), 100),
 	)
-	fmt.Println("*SelectBuilder.C():     ", sel.C())
-	fmt.Println("*SelectBuilder.C(alias):", sel.C("cname"))
+	fmt.Println("*ZSelectBuilder.C():     ", sel.C())
+	fmt.Println("*ZSelectBuilder.C(alias):", sel.C("cname"))
 	// Output:
-	// q.C(name):               "id" []
-	// q.C(name, alias):        "age" AS "ag" []
-	// Table.C(name):           "user"."age" []
-	// Table.C(name, alias):    "user"."age" AS "ag" []
-	// Expression.C():          COUNT(*) []
-	// Expression.C(alias):     COUNT(*) AS "cnt" []
-	// *SelectBuilder.C():      (SELECT "country"."name" FROM "country" WHERE "country"."id" = ?) [100]
-	// *SelectBuilder.C(alias): (SELECT "country"."name" FROM "country" WHERE "country"."id" = ?) AS "cname" [100]
+	// q.C(name):                "id" []
+	// q.C(name, alias):         "age" AS "ag" []
+	// Table.C(name):            "user"."age" []
+	// Table.C(name, alias):     "user"."age" AS "ag" []
+	// Expression.C():           COUNT(*) []
+	// Expression.C(alias):      COUNT(*) AS "cnt" []
+	// *ZSelectBuilder.C():      (SELECT "country"."name" FROM "country" WHERE "country"."id" = ?) [100]
+	// *ZSelectBuilder.C(alias): (SELECT "country"."name" FROM "country" WHERE "country"."id" = ?) AS "cname" [100]
 }
 
 // This is an example of how to use C.
@@ -200,7 +200,7 @@ func ExampleUnsafe() {
 }
 
 // This is an example of how to use the beginning argument.
-func ExampleSelect() {
+func ExampleSelect_beginning() {
 	user := q.T("user")
 	fmt.Println("Default:     ", q.Select().From(user))
 	fmt.Println("SQL_NO_CACHE:", q.Select("SELECT SQL_NO_CACHE").From(user))
@@ -211,8 +211,8 @@ func ExampleSelect() {
 	// EXPLAIN:      EXPLAIN SELECT * FROM "user" []
 }
 
-// This is an example of how to use SelectBuilder.
-func ExampleSelectBuilder() {
+// This is an example of how to use Select.
+func ExampleSelect() {
 	post, user := q.T("post"), q.T("user")
 	sel := q.Select().From(
 		post.InnerJoin(
@@ -231,8 +231,8 @@ func ExampleSelectBuilder() {
 	// SELECT `user`.`name`, `post`.`message` FROM `post` INNER JOIN `user` ON `post`.`user_id` = `user`.`id` WHERE `post`.`id` = ? [100]
 }
 
-// This is an example of how to use SelectBuilder.Column.
-func ExampleSelectBuilder_Column() {
+// This is an example of how to use ZSelectBuilder.Column.
+func ExampleZSelectBuilder_Column() {
 	user := q.T("user")
 	fmt.Println("Default:  ", q.Select().From(user))
 	fmt.Println("Append:   ", q.Select().Column(user.C("id")).From(user))
@@ -243,8 +243,8 @@ func ExampleSelectBuilder_Column() {
 	// Aggregate: SELECT COUNT(*) AS "count" FROM "user" []
 }
 
-// This is an example of how to use SelectBuilder.From.
-func ExampleSelectBuilder_From() {
+// This is an example of how to use ZSelectBuilder.From.
+func ExampleZSelectBuilder_From() {
 	user := q.T("user")
 	fmt.Println("Simple: ", q.Select().From(user))
 	post := q.T("post")
@@ -258,15 +258,15 @@ func ExampleSelectBuilder_From() {
 	// Builder: SELECT * FROM (SELECT * FROM "post") []
 }
 
-// This is an example of how to use SelectBuilder.SQL.
-func ExampleSelectBuilder_SQL() {
+// This is an example of how to use ZSelectBuilder.SQL.
+func ExampleZSelectBuilder_SQL() {
 	fmt.Println(q.Select().From(q.T("user")).Where(q.Lte(q.C("age"), 18)).ToSQL())
 	// Output:
 	// SELECT * FROM "user" WHERE "age" <= ? [18]
 }
 
-// This is an example of how to use SelectBuilder.Where.
-func ExampleSelectBuilder_Where() {
+// This is an example of how to use ZSelectBuilder.Where.
+func ExampleZSelectBuilder_Where() {
 	user := q.T("user")
 	fmt.Println("Simple: ", q.Select().From(user).Where(q.Neq(user.C("id"), nil)))
 	post := q.T("post")
@@ -279,8 +279,8 @@ func ExampleSelectBuilder_Where() {
 	// Complex: SELECT * FROM "user", "post" WHERE ("user"."id" IS NOT NULL)AND("user"."id" > ?) [100]
 }
 
-// This is an example of how to use SelectBuilder.Limit.
-func ExampleSelectBuilder_Limit() {
+// This is an example of how to use ZSelectBuilder.Limit.
+func ExampleZSelectBuilder_Limit() {
 	user := q.T("user")
 	fmt.Println("int:     ", q.Select().From(user).Limit(10))
 	fmt.Println("q.Unsafe:", q.Select().From(user).Limit(q.Unsafe(10, "*", 20)))
@@ -289,8 +289,8 @@ func ExampleSelectBuilder_Limit() {
 	// q.Unsafe: SELECT * FROM "user" LIMIT 10*20 []
 }
 
-// This is an example of how to use SelectBuilder.Offset.
-func ExampleSelectBuilder_Offset() {
+// This is an example of how to use ZSelectBuilder.Offset.
+func ExampleZSelectBuilder_Offset() {
 	user := q.T("user")
 	fmt.Println("int:     ", q.Select().From(user).Limit(10).Offset(10))
 	fmt.Println("q.Unsafe:", q.Select().From(user).Limit(10).Offset(q.Unsafe(10, "*", 20)))
@@ -299,8 +299,8 @@ func ExampleSelectBuilder_Offset() {
 	// q.Unsafe: SELECT * FROM "user" LIMIT ? OFFSET 10*20 [10]
 }
 
-// This is an example of how to use SelectBuilder.OrderBy.
-func ExampleSelectBuilder_OrderBy() {
+// This is an example of how to use ZSelectBuilder.OrderBy.
+func ExampleZSelectBuilder_OrderBy() {
 	user := q.T("user")
 	fmt.Println(
 		"Single order:  ",
@@ -316,8 +316,8 @@ func ExampleSelectBuilder_OrderBy() {
 	// Multiple order: SELECT * FROM "user" ORDER BY "user"."age" ASC, CHAR_LENGTH("user"."name") DESC []
 }
 
-// This is an example of how to use SelectBuilder.GroupBy.
-func ExampleSelectBuilder_GroupBy() {
+// This is an example of how to use ZSelectBuilder.GroupBy.
+func ExampleZSelectBuilder_GroupBy() {
 	user := q.T("user")
 	fmt.Println(
 		q.Select().Column(q.CountAll().C("count")).From(user).GroupBy(user.C("age")),
@@ -326,8 +326,8 @@ func ExampleSelectBuilder_GroupBy() {
 	// SELECT COUNT(*) AS "count" FROM "user" GROUP BY "user"."age" []
 }
 
-// This is an example of how to use CaseBuilder.
-func ExampleCaseBuilder() {
+// This is an example of how to use Case.
+func ExampleCase() {
 	user := q.T("user")
 	cs := q.Case().When(
 		q.Eq(user.C("id"), 100),
@@ -342,7 +342,8 @@ func ExampleCaseBuilder() {
 	// SELECT CASE WHEN "user"."id" = ? THEN ? ELSE ? END AS "bonus" FROM "user" [100 10 0]
 }
 
-func ExampleDeleteBuilder() {
+// This is an example of how to use Delete.
+func ExampleDelete() {
 	user := q.T("user")
 	del := q.Delete(user).Where(q.Eq(user.C("id"), 1))
 	// del := q.Delete().From(user).Where(q.Eq(user.C("id"), 1)) // same
@@ -357,7 +358,8 @@ func ExampleDeleteBuilder() {
 	// DELETE FROM "user" WHERE "id" = ? [1]
 }
 
-func ExampleUpdateBuilder() {
+// This is an example of how to use Update.
+func ExampleUpdate() {
 	upd := q.Update(q.T("user")).Set(q.C("name"), "hackme").Where(q.Eq(q.C("id"), 1))
 	fmt.Println(upd)
 	// Even in this case, the original name is used as a table and a column name
@@ -372,7 +374,8 @@ func ExampleUpdateBuilder() {
 	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 }
 
-func ExampleInsertBuilder() {
+// This is an example of how to use Insert.
+func ExampleInsert() {
 	user := q.T("user")
 	ins := q.Insert().Into(user).Set(user.C("name"), "hackme")
 	fmt.Println(ins)

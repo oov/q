@@ -6,8 +6,8 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-// InsertBuilder implements a INSERT builder.
-type InsertBuilder struct {
+// ZInsertBuilder implements a INSERT builder.
+type ZInsertBuilder struct {
 	Dialect   qutil.Dialect
 	Beginning string
 	Table     Table
@@ -18,32 +18,32 @@ type InsertBuilder struct {
 	}
 }
 
-// Insert creates InsertBuilder.
-func Insert(beginning ...string) *InsertBuilder {
+// Insert creates ZInsertBuilder.
+func Insert(beginning ...string) *ZInsertBuilder {
 	var b string
 	if len(beginning) > 0 {
 		b = beginning[0]
 	} else {
 		b = "INSERT"
 	}
-	return &InsertBuilder{
+	return &ZInsertBuilder{
 		Beginning: b,
 	}
 }
 
 // SetDialect sets a Dialect to the builder.
-func (b *InsertBuilder) SetDialect(d qutil.Dialect) *InsertBuilder {
+func (b *ZInsertBuilder) SetDialect(d qutil.Dialect) *ZInsertBuilder {
 	b.Dialect = d
 	return b
 }
 
 // Into sets a table to the builder.
-func (b *InsertBuilder) Into(table Table) *InsertBuilder {
+func (b *ZInsertBuilder) Into(table Table) *ZInsertBuilder {
 	b.Table = table
 	return b
 }
 
-func (b *InsertBuilder) find(c Column) (int, string) {
+func (b *ZInsertBuilder) find(c Column) (int, string) {
 	buf, ctx := qutil.NewContext(b, 32, 0, nil)
 	ctx.CUD = true
 	name := string(c.WriteColumn(ctx, buf))
@@ -56,7 +56,7 @@ func (b *InsertBuilder) find(c Column) (int, string) {
 }
 
 // Set adds assignment expression to the builder.
-func (b *InsertBuilder) Set(c Column, v interface{}) *InsertBuilder {
+func (b *ZInsertBuilder) Set(c Column, v interface{}) *ZInsertBuilder {
 	i, name := b.find(c)
 	if i != -1 {
 		b.Sets[i].Column = c
@@ -72,7 +72,7 @@ func (b *InsertBuilder) Set(c Column, v interface{}) *InsertBuilder {
 }
 
 // Unset removes assignment expression from the builder.
-func (b *InsertBuilder) Unset(c Column) *InsertBuilder {
+func (b *ZInsertBuilder) Unset(c Column) *ZInsertBuilder {
 	i, _ := b.find(c)
 	if i == -1 {
 		return b
@@ -89,7 +89,7 @@ func (b *InsertBuilder) Unset(c Column) *InsertBuilder {
 	return b
 }
 
-func (b *InsertBuilder) write(ctx *qutil.Context, buf []byte) []byte {
+func (b *ZInsertBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	if len(b.Sets) == 0 {
 		panic("q: need at least one assignment expression to generate INSERT statements.")
 	}
@@ -115,7 +115,7 @@ func (b *InsertBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 }
 
 // ToSQL builds SQL and arguments.
-func (b *InsertBuilder) ToSQL() (string, []interface{}) {
+func (b *ZInsertBuilder) ToSQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect
@@ -129,7 +129,7 @@ func (b *InsertBuilder) ToSQL() (string, []interface{}) {
 }
 
 // String implemenets fmt.Stringer interface.
-func (b *InsertBuilder) String() string {
+func (b *ZInsertBuilder) String() string {
 	buf, ctx := qutil.NewContext(b, 128, 8, nil)
 	ctx.CUD = true
 	buf = b.write(ctx, buf)

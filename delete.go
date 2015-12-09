@@ -6,45 +6,45 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-// DeleteBuilder implements a DELETE builder.
-type DeleteBuilder struct {
+// ZDeleteBuilder implements a DELETE builder.
+type ZDeleteBuilder struct {
 	Dialect qutil.Dialect
 	Table   Table
 	Wheres  Expressions
 }
 
-// Delete creates DeleteBuilder.
-func Delete(table ...Table) *DeleteBuilder {
+// Delete creates ZDeleteBuilder.
+func Delete(table ...Table) *ZDeleteBuilder {
 	var t Table
 	if len(table) > 0 {
 		t = table[0]
 	}
-	return &DeleteBuilder{
+	return &ZDeleteBuilder{
 		Table:  t,
 		Wheres: And(),
 	}
 }
 
 // SetDialect sets a Dialect to the builder.
-func (b *DeleteBuilder) SetDialect(d qutil.Dialect) *DeleteBuilder {
+func (b *ZDeleteBuilder) SetDialect(d qutil.Dialect) *ZDeleteBuilder {
 	b.Dialect = d
 	return b
 }
 
 // From sets a table to the FROM clause.
-func (b *DeleteBuilder) From(table Table) *DeleteBuilder {
+func (b *ZDeleteBuilder) From(table Table) *ZDeleteBuilder {
 	b.Table = table
 	return b
 }
 
 // Where adds condition to the WHERE clause.
 // More than one condition is connected by AND.
-func (b *DeleteBuilder) Where(conds ...Expression) *DeleteBuilder {
+func (b *ZDeleteBuilder) Where(conds ...Expression) *ZDeleteBuilder {
 	b.Wheres.Add(conds...)
 	return b
 }
 
-func (b *DeleteBuilder) write(ctx *qutil.Context, buf []byte) []byte {
+func (b *ZDeleteBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	if b.Table == nil {
 		panic("q: must set table to generate DELETE statement.")
 	}
@@ -58,7 +58,7 @@ func (b *DeleteBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 }
 
 // ToSQL builds SQL and arguments.
-func (b *DeleteBuilder) ToSQL() (string, []interface{}) {
+func (b *ZDeleteBuilder) ToSQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect
@@ -72,7 +72,7 @@ func (b *DeleteBuilder) ToSQL() (string, []interface{}) {
 }
 
 // String implemenets fmt.Stringer interface.
-func (b *DeleteBuilder) String() string {
+func (b *ZDeleteBuilder) String() string {
 	buf, ctx := qutil.NewContext(b, 128, 8, nil)
 	ctx.CUD = true
 	buf = b.write(ctx, buf)

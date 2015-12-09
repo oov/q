@@ -7,9 +7,9 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-// SelectBuilder implemenets a SELECT builder.
+// ZSelectBuilder implemenets a SELECT builder.
 // This also implements Expression interface, so it can use in many place.
-type SelectBuilder struct {
+type ZSelectBuilder struct {
 	Dialect   qutil.Dialect
 	Beginning string
 	Columns   []Column
@@ -25,16 +25,16 @@ type SelectBuilder struct {
 	StartOffset Expression
 }
 
-// Select creates SelectBuilder.
+// Select creates ZSelectBuilder.
 // If not needing an additional keyword around "SELECT", the argument can be omitted.
-func Select(beginning ...string) *SelectBuilder {
+func Select(beginning ...string) *ZSelectBuilder {
 	var b string
 	if len(beginning) > 0 {
 		b = beginning[0]
 	} else {
 		b = "SELECT"
 	}
-	return &SelectBuilder{
+	return &ZSelectBuilder{
 		Beginning: b,
 		Wheres:    And(),
 		Havings:   And(),
@@ -42,57 +42,57 @@ func Select(beginning ...string) *SelectBuilder {
 }
 
 // SetDialect sets a Dialect to the builder.
-func (b *SelectBuilder) SetDialect(d qutil.Dialect) *SelectBuilder {
+func (b *ZSelectBuilder) SetDialect(d qutil.Dialect) *ZSelectBuilder {
 	b.Dialect = d
 	return b
 }
 
 // Column appends a column to the column list.
-func (b *SelectBuilder) Column(columns ...Column) *SelectBuilder {
+func (b *ZSelectBuilder) Column(columns ...Column) *ZSelectBuilder {
 	b.Columns = append(b.Columns, columns...)
 	return b
 }
 
 // From appends a table to the FROM clause.
-func (b *SelectBuilder) From(tables ...Table) *SelectBuilder {
+func (b *ZSelectBuilder) From(tables ...Table) *ZSelectBuilder {
 	b.Tables = append(b.Tables, tables...)
 	return b
 }
 
 // Where adds condition to the WHERE clause.
 // More than one condition is connected by AND.
-func (b *SelectBuilder) Where(conds ...Expression) *SelectBuilder {
+func (b *ZSelectBuilder) Where(conds ...Expression) *ZSelectBuilder {
 	b.Wheres.Add(conds...)
 	return b
 }
 
 // Limit sets LIMIT clause to the builder.
-func (b *SelectBuilder) Limit(count interface{}) *SelectBuilder {
+func (b *ZSelectBuilder) Limit(count interface{}) *ZSelectBuilder {
 	b.LimitCount = interfaceToExpression(count)
 	return b
 }
 
 // Offset sets OFFSET clause to the builder.
-func (b *SelectBuilder) Offset(start interface{}) *SelectBuilder {
+func (b *ZSelectBuilder) Offset(start interface{}) *ZSelectBuilder {
 	b.StartOffset = interfaceToExpression(start)
 	return b
 }
 
 // GroupBy adds condition to the GROUP BY clause.
-func (b *SelectBuilder) GroupBy(e ...Expression) *SelectBuilder {
+func (b *ZSelectBuilder) GroupBy(e ...Expression) *ZSelectBuilder {
 	b.Groups = append(b.Groups, e...)
 	return b
 }
 
 // Having adds HAVING condition to the GROUP BY clause.
 // More than one condition is connected by AND.
-func (b *SelectBuilder) Having(conds ...Expression) *SelectBuilder {
+func (b *ZSelectBuilder) Having(conds ...Expression) *ZSelectBuilder {
 	b.Havings.Add(conds...)
 	return b
 }
 
 // OrderBy adds condition to the ORDER BY clause.
-func (b *SelectBuilder) OrderBy(e Expression, asc bool) *SelectBuilder {
+func (b *ZSelectBuilder) OrderBy(e Expression, asc bool) *ZSelectBuilder {
 	b.Orders = append(b.Orders, struct {
 		Expression
 		Ascending bool
@@ -100,7 +100,7 @@ func (b *SelectBuilder) OrderBy(e Expression, asc bool) *SelectBuilder {
 	return b
 }
 
-func (b *SelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
+func (b *ZSelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, b.Beginning...)
 
 	if len(b.Columns) == 0 {
@@ -173,7 +173,7 @@ func (b *SelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 }
 
 // ToSQL returns generated SQL and arguments.
-func (b *SelectBuilder) ToSQL() (string, []interface{}) {
+func (b *ZSelectBuilder) ToSQL() (string, []interface{}) {
 	var d qutil.Dialect
 	if b.Dialect != nil {
 		d = b.Dialect
@@ -186,7 +186,7 @@ func (b *SelectBuilder) ToSQL() (string, []interface{}) {
 }
 
 // String implements fmt.Stringer interface.
-func (b *SelectBuilder) String() string {
+func (b *ZSelectBuilder) String() string {
 	buf, ctx := qutil.NewContext(b, 128, 8, nil)
 	buf = b.write(ctx, buf)
 	buf = append(buf, ' ')
@@ -194,8 +194,8 @@ func (b *SelectBuilder) String() string {
 }
 
 // T creates Table from this builder.
-func (b *SelectBuilder) T(aliasName ...string) Table {
-	r := &selectBuilderAsTable{SelectBuilder: b}
+func (b *ZSelectBuilder) T(aliasName ...string) Table {
+	r := &selectBuilderAsTable{ZSelectBuilder: b}
 	if len(aliasName) == 0 {
 		return r
 	}
@@ -203,12 +203,12 @@ func (b *SelectBuilder) T(aliasName ...string) Table {
 }
 
 // C implements Expression interface.
-func (b *SelectBuilder) C(aliasName ...string) Column {
+func (b *ZSelectBuilder) C(aliasName ...string) Column {
 	return columnExpr(b, aliasName...)
 }
 
 // WriteExpression implements Expression interface.
-func (b *SelectBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+func (b *ZSelectBuilder) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
 	buf = b.write(ctx, buf)
 	buf = append(buf, ')')

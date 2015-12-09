@@ -7,7 +7,7 @@ import (
 )
 
 // Table represents database table.
-// You can create it from T or *SelectBuilder.T.
+// You can create it from T or *ZSelectBuilder.T.
 type Table interface {
 	C(columnName string, aliasName ...string) Column
 
@@ -191,7 +191,7 @@ func (t *table) CrossJoin(table Table, conds ...Expression) Table {
 }
 
 type selectBuilderAsTable struct {
-	*SelectBuilder
+	*ZSelectBuilder
 	joinable
 }
 
@@ -201,7 +201,7 @@ func (t *selectBuilderAsTable) String() string {
 
 func (t *selectBuilderAsTable) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
-	buf = t.SelectBuilder.write(ctx, buf)
+	buf = t.ZSelectBuilder.write(ctx, buf)
 	buf = append(buf, ')')
 	return buf
 }
