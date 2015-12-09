@@ -3,7 +3,7 @@ package q
 import "github.com/oov/q/qutil"
 
 var (
-	// DefaultDialect is default setting of builder's dialect. When not setting a Dialect in builder, this value is used.
+	// DefaultDialect is default setting of builder's dialect. When not set a Dialect in builder, this value is used.
 	DefaultDialect qutil.Dialect
 
 	// MySQL implements a dialect in MySQL.
