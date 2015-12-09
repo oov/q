@@ -130,7 +130,13 @@ func (b *ZInsertBuilder) ToSQL() (string, []interface{}) {
 
 // String implemenets fmt.Stringer interface.
 func (b *ZInsertBuilder) String() string {
-	buf, ctx := qutil.NewContext(b, 128, 8, nil)
+	var d qutil.Dialect
+	if b.Dialect != nil {
+		d = b.Dialect
+	} else {
+		d = DefaultDialect
+	}
+	buf, ctx := qutil.NewContext(b, 128, 8, d)
 	ctx.CUD = true
 	buf = b.write(ctx, buf)
 	buf = append(buf, ' ')

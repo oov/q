@@ -187,7 +187,13 @@ func (b *ZSelectBuilder) ToSQL() (string, []interface{}) {
 
 // String implements fmt.Stringer interface.
 func (b *ZSelectBuilder) String() string {
-	buf, ctx := qutil.NewContext(b, 128, 8, nil)
+	var d qutil.Dialect
+	if b.Dialect != nil {
+		d = b.Dialect
+	} else {
+		d = DefaultDialect
+	}
+	buf, ctx := qutil.NewContext(b, 128, 8, d)
 	buf = b.write(ctx, buf)
 	buf = append(buf, ' ')
 	return fmt.Sprint(string(buf), ctx.Args)
