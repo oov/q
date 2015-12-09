@@ -371,3 +371,11 @@ func ExampleUpdateBuilder() {
 	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 	// UPDATE "user" SET "name" = ? WHERE "id" = ? [hackme 1]
 }
+
+func ExampleInsertBuilder() {
+	user := q.T("user")
+	ins := q.Insert().Into(user).Set(user.C("name"), "hackme")
+	fmt.Println(ins)
+	// Output:
+	// INSERT INTO "user"("name") VALUES (?) [hackme]
+}
