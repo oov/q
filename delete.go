@@ -6,7 +6,7 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-// Delete implements a DELETE builder.
+// DeleteBuilder implements a DELETE builder.
 type DeleteBuilder struct {
 	Dialect qutil.Dialect
 	Table   Table

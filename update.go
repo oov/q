@@ -6,7 +6,7 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-// Update implements a DELETE builder.
+// UpdateBuilder implements a UPDATE builder.
 type UpdateBuilder struct {
 	Dialect   qutil.Dialect
 	Beginning string
