@@ -22,6 +22,9 @@ func expressionToString(e Expression) string {
 }
 
 func interfaceToExpression(x interface{}) Expression {
+	if x == nil {
+		return nullExpr{}
+	}
 	if v, ok := x.(Expression); ok {
 		return v
 	}
@@ -46,101 +49,86 @@ type Expressions interface {
 	Len() int
 }
 
-func writeValue(v interface{}, ctx *qutil.Context, buf []byte) []byte {
-	switch vv := v.(type) {
-	case Expression:
-		return vv.WriteExpression(ctx, buf)
-	case nil:
-		return append(buf, "NULL"...)
-	}
-	ctx.Args = append(ctx.Args, v)
-	return ctx.Placeholder.Next(buf)
+type nullExpr struct{}
+
+func (e nullExpr) String() string               { return "NULL" }
+func (e nullExpr) C(aliasName ...string) Column { panic("not implemeneted") }
+func (e nullExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	return append(buf, "NULL"...)
 }
 
 type simpleExpr struct {
 	Op    string
-	Left  interface{}
-	Right interface{}
+	Left  Expression
+	Right Expression
 }
 
-func (e *simpleExpr) String() string {
-	return expressionToString(e)
-}
-
-func (e *simpleExpr) C(aliasName ...string) Column {
-	return columnExpr(e, aliasName...)
-}
-
+func (e *simpleExpr) String() string               { return expressionToString(e) }
+func (e *simpleExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
 func (e *simpleExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	buf = writeValue(e.Left, ctx, buf)
+	buf = e.Left.WriteExpression(ctx, buf)
 	buf = append(buf, e.Op...)
-	buf = writeValue(e.Right, ctx, buf)
+	buf = e.Right.WriteExpression(ctx, buf)
 	return buf
 }
 
 type eqExpr struct {
 	Eq    bool
-	Left  interface{}
-	Right interface{}
+	Left  Expression
+	Right Expression
 }
 
-func (e *eqExpr) String() string {
-	return expressionToString(e)
-}
-
-func (e *eqExpr) C(aliasName ...string) Column {
-	return columnExpr(e, aliasName...)
-}
-
+func (e *eqExpr) String() string               { return expressionToString(e) }
+func (e *eqExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
 func (e *eqExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	lv, rv, eq := e.Left, e.Right, e.Eq
-	if lv == nil {
+	lv, rv := e.Left, e.Right
+	if _, ok := lv.(nullExpr); ok {
 		lv, rv = rv, nil
 	}
-	if rv == nil {
-		buf = writeValue(lv, ctx, buf)
-		if eq {
+	if _, ok := rv.(nullExpr); ok {
+		buf = lv.WriteExpression(ctx, buf)
+		if e.Eq {
 			return append(buf, " IS NULL"...)
 		}
 		return append(buf, " IS NOT NULL"...)
 	}
 
-	if v := reflect.ValueOf(rv); v.Kind() == reflect.Slice {
-		if v.Len() == 0 {
-			// x IN () is invaild syntax.
-			// But at the same time, a result is a obvious expression.
-			// So replace the alternative valid expression which is the same result.
-			if eq {
-				return append(buf, "'IN' == '()'"...)
-			}
-			return append(buf, "'IN' != '()'"...)
-		}
-		buf = writeValue(lv, ctx, buf)
-		if eq {
-			buf = append(buf, " IN ("...)
-		} else {
-			buf = append(buf, " NOT IN ("...)
-		}
-		args := ctx.Args
-		buf = ctx.Placeholder.Next(buf)
-		args = append(args, v.Index(0).Interface())
-		for i, l := 1, v.Len(); i < l; i++ {
-			buf = append(buf, ',')
-			buf = ctx.Placeholder.Next(buf)
-			args = append(args, v.Index(i).Interface())
-		}
-		buf = append(buf, ')')
-		ctx.Args = args
-		return buf
-	}
-
-	buf = writeValue(lv, ctx, buf)
-	if eq {
+	buf = lv.WriteExpression(ctx, buf)
+	if e.Eq {
 		buf = append(buf, " = "...)
 	} else {
 		buf = append(buf, " != "...)
 	}
-	buf = writeValue(rv, ctx, buf)
+	buf = rv.WriteExpression(ctx, buf)
+	return buf
+}
+
+type inExpr struct {
+	Eq    bool
+	Left  Expression
+	Right inVariable
+}
+
+func (e *inExpr) String() string               { return expressionToString(e) }
+func (e *inExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
+func (e *inExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	if len(e.Right) == 0 {
+		// x IN () is invaild syntax.
+		// But at the same time, a result is a obvious expression.
+		// So replace the alternative valid expression which is the same result.
+		if e.Eq {
+			return append(buf, "'IN' == '()'"...)
+		}
+		return append(buf, "'IN' != '()'"...)
+	}
+
+	buf = e.Left.WriteExpression(ctx, buf)
+	if e.Eq {
+		buf = append(buf, " IN "...)
+	} else {
+		buf = append(buf, " NOT IN "...)
+	}
+	buf = e.Right.WriteExpression(ctx, buf)
 	return buf
 }
 
@@ -149,14 +137,8 @@ type logicalExpr struct {
 	Op    string
 }
 
-func (e *logicalExpr) String() string {
-	return expressionToString(e)
-}
-
-func (e *logicalExpr) C(aliasName ...string) Column {
-	return columnExpr(e, aliasName...)
-}
-
+func (e *logicalExpr) String() string               { return expressionToString(e) }
+func (e *logicalExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
 func (e *logicalExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	switch len(e.Exprs) {
 	case 0:
@@ -188,44 +170,76 @@ func (e *logicalExpr) Len() int {
 	return len(e.Exprs)
 }
 
+func newIn(l interface{}, v reflect.Value, eq bool) Expression {
+	var r inVariable
+	for i, l := 0, v.Len(); i < l; i++ {
+		r = append(r, v.Index(i).Interface())
+	}
+	return &inExpr{Eq: eq, Left: interfaceToExpression(l), Right: r}
+}
+
 // Eq creates Expression such as "l = r".
 // But when you pass nil to one of a pair, Eq creates "x IS NULL" instead.
 // In the same way, when you pass slice of any type to r, Eq creates "x IN (?)".
 func Eq(l, r interface{}) Expression {
-	if v := reflect.ValueOf(l); v.Kind() == reflect.Slice {
-		panic("q: cannot use slice in l.")
+	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
+		return newIn(l, rv, true)
 	}
-	return &eqExpr{Eq: true, Left: l, Right: r}
+	return &eqExpr{
+		Eq:    true,
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
 }
 
 // Neq creates Expression such as "l != r".
 // But when you pass nil to one of a pair, Neq creates "x IS NOT NULL" instead.
 // In the same way, when you pass slice of any type to r, Neq creates "x NOT IN (?)".
 func Neq(l, r interface{}) Expression {
-	if v := reflect.ValueOf(l); v.Kind() == reflect.Slice {
-		panic("q: cannot use slice in l.")
+	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
+		return newIn(l, rv, false)
 	}
-	return &eqExpr{Eq: false, Left: l, Right: r}
+	return &eqExpr{
+		Eq:    false,
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
 }
 
 // Gt creates Expression such as "l > r".
 func Gt(l, r interface{}) Expression {
-	return &simpleExpr{Op: " > ", Left: l, Right: r}
+	return &simpleExpr{
+		Op:    " > ",
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
 }
 
 // Gte creates Expression such as "l >= r".
 func Gte(l, r interface{}) Expression {
-	return &simpleExpr{Op: " >= ", Left: l, Right: r}
+	return &simpleExpr{
+		Op:    " >= ",
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
 }
 
 // Lt creates Expression such as "l < r".
 func Lt(l, r interface{}) Expression {
-	return &simpleExpr{Op: " < ", Left: l, Right: r}
+	return &simpleExpr{
+		Op:    " < ",
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
 }
 
 // Lte creates Expression such as "l <= r".
 func Lte(l, r interface{}) Expression {
-	return &simpleExpr{Op: " <= ", Left: l, Right: r}
+	return &simpleExpr{
+		Op:    " <= ",
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
 }
 
 // And creates Expression such as "(exprs[0])AND(exprs[1])AND(exprs[2])".
@@ -259,14 +273,8 @@ type UnsafeExpression Expression
 
 type unsafeExpr []interface{}
 
-func (e unsafeExpr) String() string {
-	return expressionToString(e)
-}
-
-func (e unsafeExpr) C(aliasName ...string) Column {
-	return columnExpr(e, aliasName...)
-}
-
+func (e unsafeExpr) String() string               { return expressionToString(e) }
+func (e unsafeExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
 func (e unsafeExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	for _, i := range e {
 		switch v := i.(type) {
@@ -295,40 +303,43 @@ type variable struct {
 	V interface{}
 }
 
-func (v *variable) C(aliasName ...string) Column {
-	return columnExpr(v, aliasName...)
-}
-
+func (v *variable) String() string               { return expressionToString(v) }
+func (v *variable) C(aliasName ...string) Column { return columnExpr(v, aliasName...) }
 func (v *variable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	ctx.Args = append(ctx.Args, v.V)
 	return ctx.Placeholder.Next(buf)
 }
 
-// InV creates Variable from multiple inputs.
+// InV creates Variable from slice.
 // It can be used with IN operator.
-func InV(v ...interface{}) Variable {
-	if len(v) == 0 {
+func InV(slice interface{}) Variable {
+	var v inVariable
+	s := reflect.ValueOf(slice)
+	if s.Kind() != reflect.Slice {
+		v = append(v, slice)
+		return v
+	}
+	if s.Len() == 0 {
 		panic("q: need at least one value to create Variable.")
 	}
-	return &inVariable{v}
+	for i, l := 0, s.Len(); i < l; i++ {
+		v = append(v, s.Index(i).Interface())
+	}
+	return v
 }
 
-type inVariable struct {
-	V []interface{}
-}
+type inVariable []interface{}
 
-func (v *inVariable) C(aliasName ...string) Column {
-	return columnExpr(v, aliasName...)
-}
-
-func (v *inVariable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+func (v inVariable) String() string               { return expressionToString(v) }
+func (v inVariable) C(aliasName ...string) Column { return columnExpr(v, aliasName...) }
+func (v inVariable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, '(')
 	buf = ctx.Placeholder.Next(buf)
-	for i, l := 1, len(v.V); i < l; i++ {
+	for i, l := 1, len(v); i < l; i++ {
 		buf = append(buf, ',')
 		buf = ctx.Placeholder.Next(buf)
 	}
 	buf = append(buf, ')')
-	ctx.Args = append(ctx.Args, v.V...)
+	ctx.Args = append(ctx.Args, v...)
 	return buf
 }

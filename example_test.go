@@ -192,7 +192,7 @@ func ExampleUnsafe() {
 	expr := q.Unsafe(
 		"(", id, " % 2 = 1)AND",
 		"(", name, " != ", q.V("yourname"), ")AND",
-		"(", age, " IN ", q.InV(16, 17, 18), ")",
+		"(", age, " IN ", q.InV([]int{16, 17, 18}), ")",
 	)
 	fmt.Println(expr)
 	// Output:
