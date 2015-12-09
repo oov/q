@@ -1,5 +1,15 @@
 package qutil
 
+type Dialect interface {
+	Placeholder() Placeholder
+	Quote(buf []byte, word string) []byte
+	CharLengthName() string
+}
+
+type Placeholder interface {
+	Next(buf []byte) []byte
+}
+
 func escape(buf []byte, q byte, word string) []byte {
 	buf = append(buf, q)
 	p := 0
@@ -27,51 +37,24 @@ var (
 
 type mySQL struct{}
 
-func (mySQL) String() string { return "MySQL" }
-
-func (mySQL) Placeholder() Placeholder {
-	return genericPlaceholder{}
-}
-
-func (mySQL) Quote(buf []byte, word string) []byte {
-	return escape(buf, '`', word)
-}
-
-func (mySQL) CharLengthName() string {
-	return "CHAR_LENGTH"
-}
+func (mySQL) String() string                       { return "MySQL" }
+func (mySQL) Placeholder() Placeholder             { return genericPlaceholder{} }
+func (mySQL) Quote(buf []byte, word string) []byte { return escape(buf, '`', word) }
+func (mySQL) CharLengthName() string               { return "CHAR_LENGTH" }
 
 type postgreSQL struct{}
 
-func (postgreSQL) String() string { return "PostgreSQL" }
-
-func (postgreSQL) Placeholder() Placeholder {
-	return &postgresPlaceholder{}
-}
-
-func (postgreSQL) Quote(buf []byte, word string) []byte {
-	return escape(buf, '"', word)
-}
-
-func (postgreSQL) CharLengthName() string {
-	return "CHAR_LENGTH"
-}
+func (postgreSQL) String() string                       { return "PostgreSQL" }
+func (postgreSQL) Placeholder() Placeholder             { return &postgresPlaceholder{} }
+func (postgreSQL) Quote(buf []byte, word string) []byte { return escape(buf, '"', word) }
+func (postgreSQL) CharLengthName() string               { return "CHAR_LENGTH" }
 
 type sqlite struct{}
 
-func (sqlite) String() string { return "SQLite" }
-
-func (sqlite) Placeholder() Placeholder {
-	return genericPlaceholder{}
-}
-
-func (sqlite) Quote(buf []byte, word string) []byte {
-	return escape(buf, '"', word)
-}
-
-func (sqlite) CharLengthName() string {
-	return "LENGTH"
-}
+func (sqlite) String() string                       { return "SQLite" }
+func (sqlite) Placeholder() Placeholder             { return genericPlaceholder{} }
+func (sqlite) Quote(buf []byte, word string) []byte { return escape(buf, '"', word) }
+func (sqlite) CharLengthName() string               { return "LENGTH" }
 
 type fakeDialect struct{}
 
