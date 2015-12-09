@@ -133,8 +133,7 @@ func scan(rows *sql.Rows) (vals []string, err error) {
 	return vars, nil
 }
 
-func TestRealDB(t *testing.T) {
-
+func TestRealDBSelect(t *testing.T) {
 	tests := []struct {
 		name string
 		s    *ZSelectBuilder
