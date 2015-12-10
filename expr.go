@@ -18,7 +18,7 @@ type Expression interface {
 func expressionToString(e Expression) string {
 	buf, ctx := qutil.NewContext(e, 32, 1, nil)
 	buf = e.WriteExpression(ctx, buf)
-	return fmt.Sprint(string(buf), " ", ctx.Args)
+	return toString(buf, ctx.Args)
 }
 
 func interfaceToExpression(x interface{}) Expression {

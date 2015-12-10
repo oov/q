@@ -1,10 +1,6 @@
 package q
 
-import (
-	"fmt"
-
-	"github.com/oov/q/qutil"
-)
+import "github.com/oov/q/qutil"
 
 // Column represents database table column.
 // You can create it from C or Table.C or Expression.C.
@@ -19,8 +15,7 @@ type Column interface {
 func columnToString(c Column) string {
 	buf, ctx := qutil.NewContext(c, 32, 0, nil)
 	buf = c.WriteDefinition(ctx, buf)
-	buf = append(buf, ' ')
-	return fmt.Sprint(string(buf), ctx.Args)
+	return toString(buf, ctx.Args)
 }
 
 type columnAlias struct {

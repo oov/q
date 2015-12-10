@@ -1,10 +1,6 @@
 package q
 
-import (
-	"fmt"
-
-	"github.com/oov/q/qutil"
-)
+import "github.com/oov/q/qutil"
 
 // Table represents database table.
 // You can create it from T or *ZSelectBuilder.T.
@@ -27,8 +23,7 @@ type Table interface {
 func tableToString(t Table) string {
 	buf, ctx := qutil.NewContext(t, 32, 0, nil)
 	buf = t.WriteDefinition(ctx, buf)
-	buf = append(buf, ' ')
-	return fmt.Sprint(string(buf), ctx.Args)
+	return toString(buf, ctx.Args)
 }
 
 type join struct {
