@@ -27,6 +27,14 @@ func (c *columnAlias) String() string {
 	return columnToString(c)
 }
 
+func (c *columnAlias) C(aliasName ...string) Column {
+	if len(aliasName) > 0 {
+		c.Alias = aliasName[0]
+		return c
+	}
+	return c
+}
+
 func (c *columnAlias) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
 	if ctx.CUD {
 		return c.Column.WriteColumn(ctx, buf)
@@ -111,10 +119,6 @@ func (c *exprAsColumn) String() string {
 }
 
 func (c *exprAsColumn) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
-	return c.Expression.WriteExpression(ctx, buf)
-}
-
-func (c *exprAsColumn) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	return c.Expression.WriteExpression(ctx, buf)
 }
 
