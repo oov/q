@@ -263,12 +263,6 @@ func TestRealDBSelect(t *testing.T) {
 			vals: [][]string{{"2"}},
 		},
 		{
-			name: "Avg",
-			s:    Select().Column(Max(C("id")).C("a")).From(T("post")).Where(Eq(C("user_id"), 1)),
-			cols: []string{"a"},
-			vals: [][]string{{"3"}},
-		},
-		{
 			name: "Max",
 			s:    Select().Column(Max(C("age")).C("a")).From(T("user")),
 			cols: []string{"a"},
@@ -363,6 +357,17 @@ func TestRealDBSelect(t *testing.T) {
 						return
 					}
 				}()
+			}
+
+			// A return value of AVG can't be compared by string because
+			// AVG returns decimal value which the number of decimal places is different on each platform.
+			sql, args := Select().Column(Avg(C("id")).C("a")).From(T("post")).Where(Eq(C("user_id"), 1)).SetDialect(d).ToSQL()
+			var v float64
+			if err := db.QueryRow(sql, args...).Scan(&v); err != nil {
+				t.Errorf("%s AVG func Error: %v", d, err)
+			}
+			if v != 2.0 {
+				t.Errorf("%s AVG func want %d got %d", d, 2.0, v)
 			}
 		})
 		if err != nil {
