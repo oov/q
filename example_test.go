@@ -141,27 +141,31 @@ func ExampleT() {
 // This is an example of how to use Expression.
 func ExampleExpression() {
 	id := q.C("id")
-	fmt.Println("Eq(id, 100):   ", q.Eq(id, 100))
-	fmt.Println("Eq(id, nil):   ", q.Eq(id, nil))
-	fmt.Println("Eq(id, []int): ", q.Eq(id, []int{1, 2}))
-	fmt.Println("Neq(id, 100):  ", q.Neq(id, 100))
-	fmt.Println("Neq(id, nil):  ", q.Neq(id, nil))
-	fmt.Println("Neq(id, []int):", q.Neq(id, []int{1, 2}))
-	fmt.Println("Gt(id, 100):   ", q.Gt(id, 100))
-	fmt.Println("Gte(id, 100):  ", q.Gte(id, 100))
-	fmt.Println("Lt(id, 100):   ", q.Lt(id, 100))
-	fmt.Println("Lte(id, 100):  ", q.Lte(id, 100))
+	fmt.Println("Eq(id, 100):     ", q.Eq(id, 100))
+	fmt.Println("Eq(id, nil):     ", q.Eq(id, nil))
+	fmt.Println("Eq(id, []int):   ", q.Eq(id, []int{1, 2}))
+	fmt.Println("In(id, []int):   ", q.In(id, []int{1, 2}))
+	fmt.Println("Neq(id, 100):    ", q.Neq(id, 100))
+	fmt.Println("Neq(id, nil):    ", q.Neq(id, nil))
+	fmt.Println("Neq(id, []int):  ", q.Neq(id, []int{1, 2}))
+	fmt.Println("NotIn(id, []int):", q.NotIn(id, []int{1, 2}))
+	fmt.Println("Gt(id, 100):     ", q.Gt(id, 100))
+	fmt.Println("Gte(id, 100):    ", q.Gte(id, 100))
+	fmt.Println("Lt(id, 100):     ", q.Lt(id, 100))
+	fmt.Println("Lte(id, 100):    ", q.Lte(id, 100))
 	// Output:
-	// Eq(id, 100):    "id" = ? [100]
-	// Eq(id, nil):    "id" IS NULL []
-	// Eq(id, []int):  "id" IN (?,?) [1 2]
-	// Neq(id, 100):   "id" != ? [100]
-	// Neq(id, nil):   "id" IS NOT NULL []
-	// Neq(id, []int): "id" NOT IN (?,?) [1 2]
-	// Gt(id, 100):    "id" > ? [100]
-	// Gte(id, 100):   "id" >= ? [100]
-	// Lt(id, 100):    "id" < ? [100]
-	// Lte(id, 100):   "id" <= ? [100]
+	// Eq(id, 100):      "id" = ? [100]
+	// Eq(id, nil):      "id" IS NULL []
+	// Eq(id, []int):    "id" IN (?,?) [1 2]
+	// In(id, []int):    "id" IN (?,?) [1 2]
+	// Neq(id, 100):     "id" != ? [100]
+	// Neq(id, nil):     "id" IS NOT NULL []
+	// Neq(id, []int):   "id" NOT IN (?,?) [1 2]
+	// NotIn(id, []int): "id" NOT IN (?,?) [1 2]
+	// Gt(id, 100):      "id" > ? [100]
+	// Gte(id, 100):     "id" >= ? [100]
+	// Lt(id, 100):      "id" < ? [100]
+	// Lte(id, 100):     "id" <= ? [100]
 }
 
 // This is an example of how to use Expressions.

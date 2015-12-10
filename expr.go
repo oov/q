@@ -206,6 +206,30 @@ func Neq(l, r interface{}) Expression {
 	}
 }
 
+// In creates Expression such as "l IN r".
+func In(l, r interface{}) Expression {
+	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
+		return newIn(l, rv, true)
+	}
+	return &simpleExpr{
+		Op:    " IN ",
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
+}
+
+// NotIn creates Expression such as "l NOT IN r".
+func NotIn(l, r interface{}) Expression {
+	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
+		return newIn(l, rv, false)
+	}
+	return &simpleExpr{
+		Op:    " NOT IN ",
+		Left:  interfaceToExpression(l),
+		Right: interfaceToExpression(r),
+	}
+}
+
 // Gt creates Expression such as "l > r".
 func Gt(l, r interface{}) Expression {
 	return &simpleExpr{

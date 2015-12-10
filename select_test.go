@@ -8,6 +8,72 @@ import (
 	"github.com/oov/q/qutil"
 )
 
+func TestSelect(t *testing.T) {
+	tests := []struct {
+		Name string
+		B    *ZSelectBuilder
+		Want string
+	}{
+		{
+			Name: "empty",
+			B:    Select(),
+			Want: `SELECT * []`,
+		},
+		{
+			Name: "empty+beginning",
+			B:    Select("SELECT SQL_NO_CACHE"),
+			Want: `SELECT SQL_NO_CACHE * []`,
+		},
+		{
+			Name: "Limit Offset",
+			B:    Select().From(T("test")).Limit(20).Offset(10),
+			Want: `SELECT * FROM "test" LIMIT ? OFFSET ? [20 10]`,
+		},
+		{
+			Name: "GroupBy",
+			B:    Select().From(T("test")).GroupBy(C("a"), C("b")),
+			Want: `SELECT * FROM "test" GROUP BY "a", "b" []`,
+		},
+		{
+			Name: "OrderBy",
+			B:    Select().From(T("test")).OrderBy(C("a"), true).OrderBy(C("b"), false),
+			Want: `SELECT * FROM "test" ORDER BY "a" ASC, "b" DESC []`,
+		},
+		{
+			Name: "SubQuery(Table)",
+			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T()),
+			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") []`,
+		},
+		{
+			Name: "SubQuery(Table alias)",
+			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T("sq")),
+			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") AS "sq" []`,
+		},
+		{
+			Name: "SubQuery(Expression)",
+			B:    Select().From(T("t2")).Where(In(C("id"), Select().Column(C("id", "i")).From(T("test")))),
+			Want: `SELECT * FROM "t2" WHERE "id" IN (SELECT "id" AS "i" FROM "test") []`,
+		},
+		{
+			Name: "SubQuery(Column)",
+			B: func() *ZSelectBuilder {
+				user, post := T("user"), T("post")
+				return Select().Column(
+					Select().Column(user.C("name")).From(user).Where(
+						Eq(post.C("user_id"), user.C("id")),
+					).C("n"),
+				).From(post)
+			}(),
+			Want: `SELECT (SELECT "user"."name" FROM "user" WHERE "post"."user_id" = "user"."id") AS "n" FROM "post" []`,
+		},
+	}
+	for i, test := range tests {
+		if r := fmt.Sprint(test.B); r != test.Want {
+			t.Errorf("tests[%d] %s: want %q got %q", i, test.Name, test.Want, r)
+		}
+	}
+}
+
 var testModel = map[qutil.Dialect]struct {
 	tester  Tester
 	creates []string
@@ -191,6 +257,49 @@ func TestRealDBSelect(t *testing.T) {
 				{"3", "ぼやき"},
 				{"4", "ぼやき"},
 			},
+		},
+		{
+			name: "GroupBy",
+			s:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")),
+			cols: []string{"uid", "c"},
+			vals: [][]string{{"1", "2"}, {"2", "2"}},
+		},
+		{
+			name: "Having",
+			s:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")).Having(Eq(C("user_id"), 1)),
+			cols: []string{"uid", "c"},
+			vals: [][]string{{"1", "2"}},
+		},
+		{
+			name: "OrderBy",
+			s:    Select().Column(C("user_id", "u"), C("id", "i")).From(T("post")).OrderBy(C("user_id"), true).OrderBy(C("id"), false),
+			cols: []string{"u", "i"},
+			vals: [][]string{{"1", "3"}, {"1", "1"}, {"2", "4"}, {"2", "2"}},
+		},
+		{
+			name: "SubQuery(Table)",
+			s:    Select().From(Select().Column(C("id", "i")).From(T("user")).T("sq")),
+			cols: []string{"i"},
+			vals: [][]string{{"1"}, {"2"}},
+		},
+		{
+			name: "SubQuery(Expression)",
+			s:    Select().Column(C("id", "i")).From(T("post")).Where(In(C("user_id"), Select().Column(C("id", "i")).From(T("user")))),
+			cols: []string{"i"},
+			vals: [][]string{{"1"}, {"2"}, {"3"}, {"4"}},
+		},
+		{
+			name: "SubQuery(Column)",
+			s: func() *ZSelectBuilder {
+				user, post := T("user"), T("post")
+				return Select().Column(
+					Select().Column(user.C("name")).From(user).Where(
+						Eq(post.C("user_id"), user.C("id")),
+					).C("n"),
+				).From(post)
+			}(),
+			cols: []string{"n"},
+			vals: [][]string{{"Shipon"}, {"Mr.TireMan"}, {"Shipon"}, {"Mr.TireMan"}},
 		},
 		{
 			name: "Eq",
