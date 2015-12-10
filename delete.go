@@ -1,10 +1,6 @@
 package q
 
-import (
-	"fmt"
-
-	"github.com/oov/q/qutil"
-)
+import "github.com/oov/q/qutil"
 
 // ZDeleteBuilder implements a DELETE builder.
 type ZDeleteBuilder struct {
@@ -59,29 +55,10 @@ func (b *ZDeleteBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 
 // ToSQL builds SQL and arguments.
 func (b *ZDeleteBuilder) ToSQL() (string, []interface{}) {
-	var d qutil.Dialect
-	if b.Dialect != nil {
-		d = b.Dialect
-	} else {
-		d = DefaultDialect
-	}
-	buf, ctx := qutil.NewContext(b, 128, 8, d)
-	ctx.CUD = true
-	buf = b.write(ctx, buf)
-	return string(buf), ctx.Args
+	return builderToSQL(b, b.Dialect, 128, 8, true)
 }
 
 // String implemenets fmt.Stringer interface.
 func (b *ZDeleteBuilder) String() string {
-	var d qutil.Dialect
-	if b.Dialect != nil {
-		d = b.Dialect
-	} else {
-		d = DefaultDialect
-	}
-	buf, ctx := qutil.NewContext(b, 128, 8, d)
-	ctx.CUD = true
-	buf = b.write(ctx, buf)
-	buf = append(buf, ' ')
-	return fmt.Sprint(string(buf), ctx.Args)
+	return builderToString(b, b.Dialect, 128, 8, true)
 }

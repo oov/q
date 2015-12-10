@@ -1,11 +1,7 @@
 // Package q implements a SQL builder.
 package q
 
-import (
-	"fmt"
-
-	"github.com/oov/q/qutil"
-)
+import "github.com/oov/q/qutil"
 
 // ZSelectBuilder implemenets a SELECT builder.
 // This also implements Expression interface, so it can use in many place.
@@ -174,29 +170,12 @@ func (b *ZSelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 
 // ToSQL returns generated SQL and arguments.
 func (b *ZSelectBuilder) ToSQL() (string, []interface{}) {
-	var d qutil.Dialect
-	if b.Dialect != nil {
-		d = b.Dialect
-	} else {
-		d = DefaultDialect
-	}
-	buf, ctx := qutil.NewContext(b, 128, 8, d)
-	buf = b.write(ctx, buf)
-	return string(buf), ctx.Args
+	return builderToSQL(b, b.Dialect, 128, 8, false)
 }
 
 // String implements fmt.Stringer interface.
 func (b *ZSelectBuilder) String() string {
-	var d qutil.Dialect
-	if b.Dialect != nil {
-		d = b.Dialect
-	} else {
-		d = DefaultDialect
-	}
-	buf, ctx := qutil.NewContext(b, 128, 8, d)
-	buf = b.write(ctx, buf)
-	buf = append(buf, ' ')
-	return fmt.Sprint(string(buf), ctx.Args)
+	return builderToString(b, b.Dialect, 128, 8, false)
 }
 
 // T creates Table from this builder.
