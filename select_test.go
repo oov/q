@@ -18,9 +18,9 @@ var testModel = map[qutil.Dialect]struct {
 		tester: mySQLTest,
 		creates: []string{
 			`CREATE TABLE IF NOT EXISTS user(id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255), age int) DEFAULT CHARSET=utf8mb4`,
-			`CREATE TABLE IF NOT EXISTS post(id INTEGER PRIMARY KEY AUTO_INCREMENT, user_id INTEGER REFERENCES user(id), title TEXT NOT NULL) DEFAULT CHARSET=utf8mb4`,
+			`CREATE TABLE IF NOT EXISTS post(id INTEGER PRIMARY KEY AUTO_INCREMENT, user_id INTEGER REFERENCES user(id) ON DELETE CASCADE, title TEXT NOT NULL) DEFAULT CHARSET=utf8mb4`,
 			`CREATE TABLE IF NOT EXISTS tag(id INTEGER PRIMARY KEY AUTO_INCREMENT, value VARCHAR(255)) DEFAULT CHARSET=utf8mb4`,
-			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id), tag_id INTEGER NOT NULL REFERENCES tag(id), PRIMARY KEY (post_id, tag_id)) DEFAULT CHARSET=utf8mb4`,
+			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE, PRIMARY KEY (post_id, tag_id)) DEFAULT CHARSET=utf8mb4`,
 		},
 		inserts: []string{
 			`INSERT INTO user(id, name, age) VALUES (1, 'Shipon', 15)`,
@@ -49,9 +49,9 @@ var testModel = map[qutil.Dialect]struct {
 		tester: postgreSQLTest,
 		creates: []string{
 			`CREATE TABLE IF NOT EXISTS "user"(id SERIAL PRIMARY KEY, name VARCHAR(255), age int)`,
-			`CREATE TABLE IF NOT EXISTS post(id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES "user"(id), title TEXT NOT NULL)`,
+			`CREATE TABLE IF NOT EXISTS post(id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES "user"(id) ON DELETE CASCADE, title TEXT NOT NULL)`,
 			`CREATE TABLE IF NOT EXISTS tag(id SERIAL PRIMARY KEY, value VARCHAR(255))`,
-			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id), tag_id INTEGER NOT NULL REFERENCES tag(id), PRIMARY KEY (post_id, tag_id))`,
+			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE, PRIMARY KEY (post_id, tag_id))`,
 		},
 		inserts: []string{
 			`INSERT INTO "user"(id, name, age) VALUES (1, 'Shipon', 15)`,
@@ -80,9 +80,9 @@ var testModel = map[qutil.Dialect]struct {
 		tester: sqliteTest,
 		creates: []string{
 			`CREATE TABLE IF NOT EXISTS user(id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(255), age int)`,
-			`CREATE TABLE IF NOT EXISTS post(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES user(id), title TEXT NOT NULL)`,
+			`CREATE TABLE IF NOT EXISTS post(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES user(id) ON DELETE CASCADE, title TEXT NOT NULL)`,
 			`CREATE TABLE IF NOT EXISTS tag(id INTEGER PRIMARY KEY AUTOINCREMENT, value VARCHAR(255))`,
-			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id), tag_id INTEGER NOT NULL REFERENCES tag(id), PRIMARY KEY (post_id, tag_id))`,
+			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE, PRIMARY KEY (post_id, tag_id))`,
 		},
 		inserts: []string{
 			`INSERT INTO user(id, name, age) VALUES (1, 'Shipon', 15)`,
