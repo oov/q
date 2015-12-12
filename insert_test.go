@@ -8,91 +8,92 @@ import (
 	"github.com/oov/q/qutil"
 )
 
+var insertTests = []struct {
+	name string
+	b    *ZInsertBuilder
+	val  []string
+}{
+	{
+		name: "T and C",
+		b: func() *ZInsertBuilder {
+			user := T("user")
+			id, name, age := C("id"), C("name"), C("age")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+	{
+		name: "T and C(alias)",
+		b: func() *ZInsertBuilder {
+			user := T("user")
+			id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+	{
+		name: "T(alias) and C",
+		b: func() *ZInsertBuilder {
+			user := T("user", "u")
+			id, name, age := C("id"), C("name"), C("age")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+	{
+		name: "T(alias) and C(alias)",
+		b: func() *ZInsertBuilder {
+			user := T("user", "u")
+			id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+	{
+		name: "T and Table.C",
+		b: func() *ZInsertBuilder {
+			user := T("user")
+			id, name, age := user.C("id"), user.C("name"), user.C("age")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+	{
+		name: "T and Table.C(alias)",
+		b: func() *ZInsertBuilder {
+			user := T("user")
+			id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+	{
+		name: "T(alias) and Table.C",
+		b: func() *ZInsertBuilder {
+			user := T("user", "u")
+			id, name, age := user.C("id"), user.C("name"), user.C("age")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+	{
+		name: "T(alias) and Table.C(alias)",
+		b: func() *ZInsertBuilder {
+			user := T("user", "u")
+			id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
+			return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
+		}(),
+		val: []string{"1", "TestMan", "100"},
+	},
+}
+
 func TestRealDBInsert(t *testing.T) {
-	tests := []struct {
-		name string
-		b    *ZInsertBuilder
-		val  []string
-	}{
-		{
-			name: "T and C",
-			b: func() *ZInsertBuilder {
-				user := T("user")
-				id, name, age := C("id"), C("name"), C("age")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-		{
-			name: "T and C(alias)",
-			b: func() *ZInsertBuilder {
-				user := T("user")
-				id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-		{
-			name: "T(alias) and C",
-			b: func() *ZInsertBuilder {
-				user := T("user", "u")
-				id, name, age := C("id"), C("name"), C("age")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-		{
-			name: "T(alias) and C(alias)",
-			b: func() *ZInsertBuilder {
-				user := T("user", "u")
-				id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-		{
-			name: "T and Table.C",
-			b: func() *ZInsertBuilder {
-				user := T("user")
-				id, name, age := user.C("id"), user.C("name"), user.C("age")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-		{
-			name: "T and Table.C(alias)",
-			b: func() *ZInsertBuilder {
-				user := T("user")
-				id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-		{
-			name: "T(alias) and Table.C",
-			b: func() *ZInsertBuilder {
-				user := T("user", "u")
-				id, name, age := user.C("id"), user.C("name"), user.C("age")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-		{
-			name: "T(alias) and Table.C(alias)",
-			b: func() *ZInsertBuilder {
-				user := T("user", "u")
-				id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
-				return Insert().Into(user).Set(id, "1").Set(name, "TestMan").Set(age, 100)
-			}(),
-			val: []string{"1", "TestMan", "100"},
-		},
-	}
 	for _, testData := range testModel {
 		err := testData.tester(func(db *sql.DB, d qutil.Dialect) {
 			defer exec(t, "drops", db, d, testData.drops)
 			exec(t, "drops", db, d, testData.drops)
 			exec(t, "creates", db, d, testData.creates)
-			for i, test := range tests {
+			for i, test := range insertTests {
 				func() {
 					tx, err := db.Begin()
 					if err != nil {

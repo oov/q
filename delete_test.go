@@ -8,92 +8,93 @@ import (
 	"github.com/oov/q/qutil"
 )
 
+var deleteTests = []struct {
+	name string
+	b    *ZDeleteBuilder
+	val  []string
+}{
+	{
+		name: "T and C",
+		b: func() *ZDeleteBuilder {
+			user := T("user")
+			id, name, age := C("id"), C("name"), C("age")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+	{
+		name: "T and C(alias)",
+		b: func() *ZDeleteBuilder {
+			user := T("user")
+			id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+	{
+		name: "T(alias) and C",
+		b: func() *ZDeleteBuilder {
+			user := T("user", "u")
+			id, name, age := C("id"), C("name"), C("age")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+	{
+		name: "T(alias) and C(alias)",
+		b: func() *ZDeleteBuilder {
+			user := T("user", "u")
+			id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+	{
+		name: "T and Table.C",
+		b: func() *ZDeleteBuilder {
+			user := T("user")
+			id, name, age := user.C("id"), user.C("name"), user.C("age")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+	{
+		name: "T and Table.C(alias)",
+		b: func() *ZDeleteBuilder {
+			user := T("user")
+			id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+	{
+		name: "T(alias) and Table.C",
+		b: func() *ZDeleteBuilder {
+			user := T("user", "u")
+			id, name, age := user.C("id"), user.C("name"), user.C("age")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+	{
+		name: "T(alias) and Table.C(alias)",
+		b: func() *ZDeleteBuilder {
+			user := T("user", "u")
+			id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
+			return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
+		}(),
+		val: []string{"2", "Mr.TireMan", "44"},
+	},
+}
+
 func TestRealDBDelete(t *testing.T) {
-	tests := []struct {
-		name string
-		b    *ZDeleteBuilder
-		val  []string
-	}{
-		{
-			name: "T and C",
-			b: func() *ZDeleteBuilder {
-				user := T("user")
-				id, name, age := C("id"), C("name"), C("age")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-		{
-			name: "T and C(alias)",
-			b: func() *ZDeleteBuilder {
-				user := T("user")
-				id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-		{
-			name: "T(alias) and C",
-			b: func() *ZDeleteBuilder {
-				user := T("user", "u")
-				id, name, age := C("id"), C("name"), C("age")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-		{
-			name: "T(alias) and C(alias)",
-			b: func() *ZDeleteBuilder {
-				user := T("user", "u")
-				id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-		{
-			name: "T and Table.C",
-			b: func() *ZDeleteBuilder {
-				user := T("user")
-				id, name, age := user.C("id"), user.C("name"), user.C("age")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-		{
-			name: "T and Table.C(alias)",
-			b: func() *ZDeleteBuilder {
-				user := T("user")
-				id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-		{
-			name: "T(alias) and Table.C",
-			b: func() *ZDeleteBuilder {
-				user := T("user", "u")
-				id, name, age := user.C("id"), user.C("name"), user.C("age")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-		{
-			name: "T(alias) and Table.C(alias)",
-			b: func() *ZDeleteBuilder {
-				user := T("user", "u")
-				id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
-				return Delete().From(user).Where(Eq(id, "1"), Eq(name, "Shipon"), Eq(age, 15))
-			}(),
-			val: []string{"2", "Mr.TireMan", "44"},
-		},
-	}
 	for _, testData := range testModel {
 		err := testData.tester(func(db *sql.DB, d qutil.Dialect) {
 			defer exec(t, "drops", db, d, testData.drops)
 			exec(t, "drops", db, d, testData.drops)
 			exec(t, "creates", db, d, testData.creates)
 			exec(t, "inserts", db, d, testData.inserts)
-			for i, test := range tests {
+			for i, test := range deleteTests {
 				func() {
 					tx, err := db.Begin()
 					if err != nil {

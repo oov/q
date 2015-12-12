@@ -8,92 +8,93 @@ import (
 	"github.com/oov/q/qutil"
 )
 
+var updateTests = []struct {
+	name string
+	b    *ZUpdateBuilder
+	val  []string
+}{
+	{
+		name: "T and C",
+		b: func() *ZUpdateBuilder {
+			user := T("user")
+			id, name, age := C("id"), C("name"), C("age")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+	{
+		name: "T and C(alias)",
+		b: func() *ZUpdateBuilder {
+			user := T("user")
+			id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+	{
+		name: "T(alias) and C",
+		b: func() *ZUpdateBuilder {
+			user := T("user", "u")
+			id, name, age := C("id"), C("name"), C("age")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+	{
+		name: "T(alias) and C(alias)",
+		b: func() *ZUpdateBuilder {
+			user := T("user", "u")
+			id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+	{
+		name: "T and Table.C",
+		b: func() *ZUpdateBuilder {
+			user := T("user")
+			id, name, age := user.C("id"), user.C("name"), user.C("age")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+	{
+		name: "T and Table.C(alias)",
+		b: func() *ZUpdateBuilder {
+			user := T("user")
+			id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+	{
+		name: "T(alias) and Table.C",
+		b: func() *ZUpdateBuilder {
+			user := T("user", "u")
+			id, name, age := user.C("id"), user.C("name"), user.C("age")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+	{
+		name: "T(alias) and Table.C(alias)",
+		b: func() *ZUpdateBuilder {
+			user := T("user", "u")
+			id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
+			return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
+		}(),
+		val: []string{"1", "Shiponium", "16"},
+	},
+}
+
 func TestRealDBUpdate(t *testing.T) {
-	tests := []struct {
-		name string
-		b    *ZUpdateBuilder
-		val  []string
-	}{
-		{
-			name: "T and C",
-			b: func() *ZUpdateBuilder {
-				user := T("user")
-				id, name, age := C("id"), C("name"), C("age")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-		{
-			name: "T and C(alias)",
-			b: func() *ZUpdateBuilder {
-				user := T("user")
-				id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-		{
-			name: "T(alias) and C",
-			b: func() *ZUpdateBuilder {
-				user := T("user", "u")
-				id, name, age := C("id"), C("name"), C("age")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-		{
-			name: "T(alias) and C(alias)",
-			b: func() *ZUpdateBuilder {
-				user := T("user", "u")
-				id, name, age := C("id", "i"), C("name", "n"), C("age", "a")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-		{
-			name: "T and Table.C",
-			b: func() *ZUpdateBuilder {
-				user := T("user")
-				id, name, age := user.C("id"), user.C("name"), user.C("age")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-		{
-			name: "T and Table.C(alias)",
-			b: func() *ZUpdateBuilder {
-				user := T("user")
-				id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-		{
-			name: "T(alias) and Table.C",
-			b: func() *ZUpdateBuilder {
-				user := T("user", "u")
-				id, name, age := user.C("id"), user.C("name"), user.C("age")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-		{
-			name: "T(alias) and Table.C(alias)",
-			b: func() *ZUpdateBuilder {
-				user := T("user", "u")
-				id, name, age := user.C("id", "i"), user.C("name", "n"), user.C("age", "a")
-				return Update(user).Set(name, "Shiponium").Set(age, 16).Where(Eq(id, "1"))
-			}(),
-			val: []string{"1", "Shiponium", "16"},
-		},
-	}
 	for _, testData := range testModel {
 		err := testData.tester(func(db *sql.DB, d qutil.Dialect) {
 			defer exec(t, "drops", db, d, testData.drops)
 			exec(t, "drops", db, d, testData.drops)
 			exec(t, "creates", db, d, testData.creates)
 			exec(t, "inserts", db, d, testData.inserts)
-			for i, test := range tests {
+			for i, test := range updateTests {
 				func() {
 					tx, err := db.Begin()
 					if err != nil {
