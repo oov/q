@@ -8,72 +8,6 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-func TestSelect(t *testing.T) {
-	tests := []struct {
-		Name string
-		B    *ZSelectBuilder
-		Want string
-	}{
-		{
-			Name: "empty",
-			B:    Select(),
-			Want: `SELECT * []`,
-		},
-		{
-			Name: "empty+beginning",
-			B:    Select("SELECT SQL_NO_CACHE"),
-			Want: `SELECT SQL_NO_CACHE * []`,
-		},
-		{
-			Name: "Limit Offset",
-			B:    Select().From(T("test")).Limit(20).Offset(10),
-			Want: `SELECT * FROM "test" LIMIT ? OFFSET ? [20 10]`,
-		},
-		{
-			Name: "GroupBy",
-			B:    Select().From(T("test")).GroupBy(C("a"), C("b")),
-			Want: `SELECT * FROM "test" GROUP BY "a", "b" []`,
-		},
-		{
-			Name: "OrderBy",
-			B:    Select().From(T("test")).OrderBy(C("a"), true).OrderBy(C("b"), false),
-			Want: `SELECT * FROM "test" ORDER BY "a" ASC, "b" DESC []`,
-		},
-		{
-			Name: "SubQuery(Table)",
-			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T()),
-			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") []`,
-		},
-		{
-			Name: "SubQuery(Table alias)",
-			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T("sq")),
-			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") AS "sq" []`,
-		},
-		{
-			Name: "SubQuery(Expression)",
-			B:    Select().From(T("t2")).Where(In(C("id"), Select().Column(C("id", "i")).From(T("test")))),
-			Want: `SELECT * FROM "t2" WHERE "id" IN (SELECT "id" AS "i" FROM "test") []`,
-		},
-		{
-			Name: "SubQuery(Column)",
-			B: func() *ZSelectBuilder {
-				user, post := T("user"), T("post")
-				return Select().Column(
-					Select().Column(user.C("name")).From(user).Where(
-						Eq(post.C("user_id"), user.C("id")),
-					).C("n"),
-				).From(post)
-			}(),
-			Want: `SELECT (SELECT "user"."name" FROM "user" WHERE "post"."user_id" = "user"."id") AS "n" FROM "post" []`,
-		},
-	}
-	for i, test := range tests {
-		if r := fmt.Sprint(test.B); r != test.Want {
-			t.Errorf("tests[%d] %s: want %q got %q", i, test.Name, test.Want, r)
-		}
-	}
-}
-
 var testModel = map[qutil.Dialect]struct {
 	tester  Tester
 	creates []string
@@ -175,6 +109,289 @@ var testModel = map[qutil.Dialect]struct {
 	},
 }
 
+var selectTests = []struct {
+	Name string
+	B    *ZSelectBuilder
+	Cols []string
+	Want [][]string
+}{
+	{
+		Name: "Simple Select",
+		B:    Select().From(T("user")),
+		Cols: []string{"id", "name", "age"},
+		Want: [][]string{
+			{"1", "Shipon", "15"},
+			{"2", "Mr.TireMan", "44"},
+		},
+	},
+	{
+		Name: "Single Join",
+		B: func() *ZSelectBuilder {
+			user, post := T("user", "u"), T("post", "p")
+			return Select().From(post.InnerJoin(
+				user,
+				Eq(post.C("user_id"), user.C("id")),
+			))
+		}(),
+		Cols: []string{"id", "user_id", "title", "id", "name", "age"},
+		Want: [][]string{
+			{"1", "1", "昨日見た夢の内容が凄い", "1", "Shipon", "15"},
+			{"2", "2", "氷の上で滑るタイヤの原因とは？", "2", "Mr.TireMan", "44"},
+			{"3", "1", "嘘じゃないんです", "1", "Shipon", "15"},
+			{"4", "2", "最近仕事が辛い", "2", "Mr.TireMan", "44"},
+		},
+	},
+	{
+		Name: "Multiple Join",
+		B: func() *ZSelectBuilder {
+			post, posttag, tag := T("post", "p"), T("posttag", "pt"), T("tag", "t")
+			return Select().Column(
+				post.C("id", "i"),
+				tag.C("value", "v"),
+			).From(
+				post.InnerJoin(
+					posttag.InnerJoin(
+						tag,
+						Eq(posttag.C("tag_id"), tag.C("id")),
+					),
+					Eq(post.C("id"), posttag.C("post_id")),
+				),
+			)
+		}(),
+		Cols: []string{"i", "v"},
+		Want: [][]string{
+			{"1", "Diary"},
+			{"2", "Ad"},
+			{"3", "Diary"},
+			{"3", "ぼやき"},
+			{"4", "ぼやき"},
+		},
+	},
+	{
+		Name: "GroupBy",
+		B:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")),
+		Cols: []string{"uid", "c"},
+		Want: [][]string{{"1", "2"}, {"2", "2"}},
+	},
+	{
+		Name: "Having",
+		B:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")).Having(Eq(C("user_id"), 1)),
+		Cols: []string{"uid", "c"},
+		Want: [][]string{{"1", "2"}},
+	},
+	{
+		Name: "OrderBy",
+		B:    Select().Column(C("user_id", "u"), C("id", "i")).From(T("post")).OrderBy(C("user_id"), true).OrderBy(C("id"), false),
+		Cols: []string{"u", "i"},
+		Want: [][]string{{"1", "3"}, {"1", "1"}, {"2", "4"}, {"2", "2"}},
+	},
+	{
+		Name: "SubQuery(Table)",
+		B:    Select().From(Select().Column(C("id", "i")).From(T("user")).T("sq")),
+		Cols: []string{"i"},
+		Want: [][]string{{"1"}, {"2"}},
+	},
+	{
+		Name: "SubQuery(Expression)",
+		B:    Select().Column(C("id", "i")).From(T("post")).Where(In(C("user_id"), Select().Column(C("id", "i")).From(T("user")))),
+		Cols: []string{"i"},
+		Want: [][]string{{"1"}, {"2"}, {"3"}, {"4"}},
+	},
+	{
+		Name: "SubQuery(Column)",
+		B: func() *ZSelectBuilder {
+			user, post := T("user"), T("post")
+			return Select().Column(
+				Select().Column(user.C("name")).From(user).Where(
+					Eq(post.C("user_id"), user.C("id")),
+				).C("n"),
+			).From(post)
+		}(),
+		Cols: []string{"n"},
+		Want: [][]string{{"Shipon"}, {"Mr.TireMan"}, {"Shipon"}, {"Mr.TireMan"}},
+	},
+	{
+		Name: "Eq",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Eq(C("age"), 15)),
+		Cols: []string{"id"},
+		Want: [][]string{{"1"}},
+	},
+	{
+		Name: "Neq",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Neq(C("age"), 15)),
+		Cols: []string{"id"},
+		Want: [][]string{{"2"}},
+	},
+	{
+		Name: "Lt",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Lt(C("age"), 44)),
+		Cols: []string{"id"},
+		Want: [][]string{{"1"}},
+	},
+	{
+		Name: "Lte",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Lte(C("age"), 44)),
+		Cols: []string{"id"},
+		Want: [][]string{{"1"}, {"2"}},
+	},
+	{
+		Name: "Gt",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Gt(C("age"), 15)),
+		Cols: []string{"id"},
+		Want: [][]string{{"2"}},
+	},
+	{
+		Name: "Gte",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Gte(C("age"), 15)),
+		Cols: []string{"id"},
+		Want: [][]string{{"1"}, {"2"}},
+	},
+	{
+		Name: "And",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(And(Eq(C("id"), 1), Eq(C("age"), 15))),
+		Cols: []string{"id"},
+		Want: [][]string{{"1"}},
+	},
+	{
+		Name: "Or",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Or(Eq(C("id"), 2), Eq(C("age"), 15))),
+		Cols: []string{"id"},
+		Want: [][]string{{"1"}, {"2"}},
+	},
+	{
+		Name: "And(empty)",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(And()),
+		Want: [][]string{},
+	},
+	{
+		Name: "Or(empty)",
+		B:    Select().Column(C("id", "id")).From(T("user")).Where(Or()),
+		Want: [][]string{},
+	},
+	{
+		Name: "CountAll",
+		B:    Select().Column(CountAll().C("a")).From(T("user")),
+		Cols: []string{"a"},
+		Want: [][]string{{"2"}},
+	},
+	{
+		Name: "Count",
+		B:    Select().Column(Count(C("id")).C("a")).From(T("user")),
+		Cols: []string{"a"},
+		Want: [][]string{{"2"}},
+	},
+	{
+		Name: "Max",
+		B:    Select().Column(Max(C("age")).C("a")).From(T("user")),
+		Cols: []string{"a"},
+		Want: [][]string{{"44"}},
+	},
+	{
+		Name: "Min",
+		B:    Select().Column(Min(C("age")).C("a")).From(T("user")),
+		Cols: []string{"a"},
+		Want: [][]string{{"15"}},
+	},
+	{
+		Name: "Sum",
+		B:    Select().Column(Sum(C("age")).C("a")).From(T("user")),
+		Cols: []string{"a"},
+		Want: [][]string{{"59"}},
+	},
+	{
+		Name: "Simple CASE",
+		B:    Select().Column(Case(C("age")).When(44, 10).When(15, 1).Else(0).C("r")).From(T("user")),
+		Cols: []string{"r"},
+		Want: [][]string{{"1"}, {"10"}},
+	},
+	{
+		Name: "Searched CASE",
+		B:    Select().Column(Case().When(Eq(C("age"), 44), 10).When(Eq(C("age"), 15), 1).Else(0).C("r")).From(T("user")),
+		Cols: []string{"r"},
+		Want: [][]string{{"1"}, {"10"}},
+	},
+	{
+		Name: "Simple CASE + Sum",
+		// Unsafe is workaround for PostgreSQL "function sum(text) does not exist" error.
+		// When all expressions are a placeholder, It seems PostgreSQL can not guess at the type.
+		B:    Select().Column(Sum(Case(C("age")).When(44, 10).When(15, (1)).Else(Unsafe(0))).C("r")).From(T("user")),
+		Cols: []string{"r"},
+		Want: [][]string{{"11"}},
+	},
+	{
+		Name: "Searched CASE + Sum",
+		B:    Select().Column(Sum(Case().When(Eq(C("age"), 44), 10).When(Eq(C("age"), 15), 1).Else(Unsafe(0))).C("r")).From(T("user")),
+		Cols: []string{"r"},
+		Want: [][]string{{"11"}},
+	},
+}
+
+func TestSelect(t *testing.T) {
+	tests := []struct {
+		Name string
+		B    *ZSelectBuilder
+		Want string
+	}{
+		{
+			Name: "empty",
+			B:    Select(),
+			Want: `SELECT * []`,
+		},
+		{
+			Name: "empty+beginning",
+			B:    Select("SELECT SQL_NO_CACHE"),
+			Want: `SELECT SQL_NO_CACHE * []`,
+		},
+		{
+			Name: "Limit Offset",
+			B:    Select().From(T("test")).Limit(20).Offset(10),
+			Want: `SELECT * FROM "test" LIMIT ? OFFSET ? [20 10]`,
+		},
+		{
+			Name: "GroupBy",
+			B:    Select().From(T("test")).GroupBy(C("a"), C("b")),
+			Want: `SELECT * FROM "test" GROUP BY "a", "b" []`,
+		},
+		{
+			Name: "OrderBy",
+			B:    Select().From(T("test")).OrderBy(C("a"), true).OrderBy(C("b"), false),
+			Want: `SELECT * FROM "test" ORDER BY "a" ASC, "b" DESC []`,
+		},
+		{
+			Name: "SubQuery(Table)",
+			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T()),
+			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") []`,
+		},
+		{
+			Name: "SubQuery(Table alias)",
+			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T("sq")),
+			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") AS "sq" []`,
+		},
+		{
+			Name: "SubQuery(Expression)",
+			B:    Select().From(T("t2")).Where(In(C("id"), Select().Column(C("id", "i")).From(T("test")))),
+			Want: `SELECT * FROM "t2" WHERE "id" IN (SELECT "id" AS "i" FROM "test") []`,
+		},
+		{
+			Name: "SubQuery(Column)",
+			B: func() *ZSelectBuilder {
+				user, post := T("user"), T("post")
+				return Select().Column(
+					Select().Column(user.C("name")).From(user).Where(
+						Eq(post.C("user_id"), user.C("id")),
+					).C("n"),
+				).From(post)
+			}(),
+			Want: `SELECT (SELECT "user"."name" FROM "user" WHERE "post"."user_id" = "user"."id") AS "n" FROM "post" []`,
+		},
+	}
+	for i, test := range tests {
+		if r := fmt.Sprint(test.B); r != test.Want {
+			t.Errorf("tests[%d] %s: want %q got %q", i, test.Name, test.Want, r)
+		}
+	}
+}
+
 func exec(t *testing.T, name string, db *sql.DB, d qutil.Dialect, sqls []string) {
 	for i, sql := range sqls {
 		if _, err := db.Exec(sql); err != nil {
@@ -199,224 +416,7 @@ func scan(rows *sql.Rows) (vals []string, err error) {
 	return vars, nil
 }
 
-var selectTests = []struct {
-	name string
-	s    *ZSelectBuilder
-	cols []string
-	vals [][]string
-}{
-	{
-		name: "Simple Select",
-		s:    Select().From(T("user")),
-		cols: []string{"id", "name", "age"},
-		vals: [][]string{
-			{"1", "Shipon", "15"},
-			{"2", "Mr.TireMan", "44"},
-		},
-	},
-	{
-		name: "Single Join",
-		s: func() *ZSelectBuilder {
-			user, post := T("user", "u"), T("post", "p")
-			return Select().From(post.InnerJoin(
-				user,
-				Eq(post.C("user_id"), user.C("id")),
-			))
-		}(),
-		cols: []string{"id", "user_id", "title", "id", "name", "age"},
-		vals: [][]string{
-			{"1", "1", "昨日見た夢の内容が凄い", "1", "Shipon", "15"},
-			{"2", "2", "氷の上で滑るタイヤの原因とは？", "2", "Mr.TireMan", "44"},
-			{"3", "1", "嘘じゃないんです", "1", "Shipon", "15"},
-			{"4", "2", "最近仕事が辛い", "2", "Mr.TireMan", "44"},
-		},
-	},
-	{
-		name: "Multiple Join",
-		s: func() *ZSelectBuilder {
-			post, posttag, tag := T("post", "p"), T("posttag", "pt"), T("tag", "t")
-			return Select().Column(
-				post.C("id", "i"),
-				tag.C("value", "v"),
-			).From(
-				post.InnerJoin(
-					posttag.InnerJoin(
-						tag,
-						Eq(posttag.C("tag_id"), tag.C("id")),
-					),
-					Eq(post.C("id"), posttag.C("post_id")),
-				),
-			)
-		}(),
-		cols: []string{"i", "v"},
-		vals: [][]string{
-			{"1", "Diary"},
-			{"2", "Ad"},
-			{"3", "Diary"},
-			{"3", "ぼやき"},
-			{"4", "ぼやき"},
-		},
-	},
-	{
-		name: "GroupBy",
-		s:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")),
-		cols: []string{"uid", "c"},
-		vals: [][]string{{"1", "2"}, {"2", "2"}},
-	},
-	{
-		name: "Having",
-		s:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")).Having(Eq(C("user_id"), 1)),
-		cols: []string{"uid", "c"},
-		vals: [][]string{{"1", "2"}},
-	},
-	{
-		name: "OrderBy",
-		s:    Select().Column(C("user_id", "u"), C("id", "i")).From(T("post")).OrderBy(C("user_id"), true).OrderBy(C("id"), false),
-		cols: []string{"u", "i"},
-		vals: [][]string{{"1", "3"}, {"1", "1"}, {"2", "4"}, {"2", "2"}},
-	},
-	{
-		name: "SubQuery(Table)",
-		s:    Select().From(Select().Column(C("id", "i")).From(T("user")).T("sq")),
-		cols: []string{"i"},
-		vals: [][]string{{"1"}, {"2"}},
-	},
-	{
-		name: "SubQuery(Expression)",
-		s:    Select().Column(C("id", "i")).From(T("post")).Where(In(C("user_id"), Select().Column(C("id", "i")).From(T("user")))),
-		cols: []string{"i"},
-		vals: [][]string{{"1"}, {"2"}, {"3"}, {"4"}},
-	},
-	{
-		name: "SubQuery(Column)",
-		s: func() *ZSelectBuilder {
-			user, post := T("user"), T("post")
-			return Select().Column(
-				Select().Column(user.C("name")).From(user).Where(
-					Eq(post.C("user_id"), user.C("id")),
-				).C("n"),
-			).From(post)
-		}(),
-		cols: []string{"n"},
-		vals: [][]string{{"Shipon"}, {"Mr.TireMan"}, {"Shipon"}, {"Mr.TireMan"}},
-	},
-	{
-		name: "Eq",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Eq(C("age"), 15)),
-		cols: []string{"id"},
-		vals: [][]string{{"1"}},
-	},
-	{
-		name: "Neq",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Neq(C("age"), 15)),
-		cols: []string{"id"},
-		vals: [][]string{{"2"}},
-	},
-	{
-		name: "Lt",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Lt(C("age"), 44)),
-		cols: []string{"id"},
-		vals: [][]string{{"1"}},
-	},
-	{
-		name: "Lte",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Lte(C("age"), 44)),
-		cols: []string{"id"},
-		vals: [][]string{{"1"}, {"2"}},
-	},
-	{
-		name: "Gt",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Gt(C("age"), 15)),
-		cols: []string{"id"},
-		vals: [][]string{{"2"}},
-	},
-	{
-		name: "Gte",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Gte(C("age"), 15)),
-		cols: []string{"id"},
-		vals: [][]string{{"1"}, {"2"}},
-	},
-	{
-		name: "And",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(And(Eq(C("id"), 1), Eq(C("age"), 15))),
-		cols: []string{"id"},
-		vals: [][]string{{"1"}},
-	},
-	{
-		name: "Or",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Or(Eq(C("id"), 2), Eq(C("age"), 15))),
-		cols: []string{"id"},
-		vals: [][]string{{"1"}, {"2"}},
-	},
-	{
-		name: "And(empty)",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(And()),
-		vals: [][]string{},
-	},
-	{
-		name: "Or(empty)",
-		s:    Select().Column(C("id", "id")).From(T("user")).Where(Or()),
-		vals: [][]string{},
-	},
-	{
-		name: "CountAll",
-		s:    Select().Column(CountAll().C("a")).From(T("user")),
-		cols: []string{"a"},
-		vals: [][]string{{"2"}},
-	},
-	{
-		name: "Count",
-		s:    Select().Column(Count(C("id")).C("a")).From(T("user")),
-		cols: []string{"a"},
-		vals: [][]string{{"2"}},
-	},
-	{
-		name: "Max",
-		s:    Select().Column(Max(C("age")).C("a")).From(T("user")),
-		cols: []string{"a"},
-		vals: [][]string{{"44"}},
-	},
-	{
-		name: "Min",
-		s:    Select().Column(Min(C("age")).C("a")).From(T("user")),
-		cols: []string{"a"},
-		vals: [][]string{{"15"}},
-	},
-	{
-		name: "Sum",
-		s:    Select().Column(Sum(C("age")).C("a")).From(T("user")),
-		cols: []string{"a"},
-		vals: [][]string{{"59"}},
-	},
-	{
-		name: "Simple CASE",
-		s:    Select().Column(Case(C("age")).When(44, 10).When(15, 1).Else(0).C("r")).From(T("user")),
-		cols: []string{"r"},
-		vals: [][]string{{"1"}, {"10"}},
-	},
-	{
-		name: "Searched CASE",
-		s:    Select().Column(Case().When(Eq(C("age"), 44), 10).When(Eq(C("age"), 15), 1).Else(0).C("r")).From(T("user")),
-		cols: []string{"r"},
-		vals: [][]string{{"1"}, {"10"}},
-	},
-	{
-		name: "Simple CASE + Sum",
-		// Unsafe is workaround for PostgreSQL "function sum(text) does not exist" error.
-		// When all expressions are a placeholder, It seems PostgreSQL can not guess at the type.
-		s:    Select().Column(Sum(Case(C("age")).When(44, 10).When(15, (1)).Else(Unsafe(0))).C("r")).From(T("user")),
-		cols: []string{"r"},
-		vals: [][]string{{"11"}},
-	},
-	{
-		name: "Searched CASE + Sum",
-		s:    Select().Column(Sum(Case().When(Eq(C("age"), 44), 10).When(Eq(C("age"), 15), 1).Else(Unsafe(0))).C("r")).From(T("user")),
-		cols: []string{"r"},
-		vals: [][]string{{"11"}},
-	},
-}
-
-func TestRealDBSelect(t *testing.T) {
+func TestSelectOnDB(t *testing.T) {
 	for _, testData := range testModel {
 		err := testData.tester(func(db *sql.DB, d qutil.Dialect) {
 			defer exec(t, "drops", db, d, testData.drops)
@@ -426,23 +426,23 @@ func TestRealDBSelect(t *testing.T) {
 
 			for i, test := range selectTests {
 				func() {
-					sql, args := test.s.SetDialect(d).ToSQL()
+					sql, args := test.B.SetDialect(d).ToSQL()
 					rows, err := db.Query(sql, args...)
 					if err != nil {
-						t.Fatalf("%s test[%d] %s Error: %v\n%s", d, i, test.name, err, sql)
+						t.Fatalf("%s test[%d] %s Error: %v\n%s", d, i, test.Name, err, sql)
 					}
 					defer rows.Close()
 
-					if test.cols != nil {
+					if test.Cols != nil {
 						// verify columns
 						// https://www.sqlite.org/c3ref/column_name.html
 						// In SQLite3, if there is no AS clause then the name of the column is unspecified.
 						cols, err := rows.Columns()
 						if err = rows.Err(); err != nil {
-							t.Fatalf("%s test[%d] %s Error: %v", d, i, test.name, err)
+							t.Fatalf("%s test[%d] %s Error: %v", d, i, test.Name, err)
 						}
-						if fmt.Sprint(cols) != fmt.Sprint(test.cols) {
-							t.Errorf("%s test[%d] %s cols want %v got %v", d, i, test.name, test.cols, cols)
+						if fmt.Sprint(cols) != fmt.Sprint(test.Cols) {
+							t.Errorf("%s test[%d] %s cols want %v got %v", d, i, test.Name, test.Cols, cols)
 							return
 						}
 					}
@@ -453,16 +453,16 @@ func TestRealDBSelect(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
-						if fmt.Sprint(vars) != fmt.Sprint(test.vals[j]) {
-							t.Errorf("%s test[%d] %s vals[[j] want %v got %v", d, i, test.name, test.vals[j], vars)
+						if fmt.Sprint(vars) != fmt.Sprint(test.Want[j]) {
+							t.Errorf("%s test[%d] %s vals[[j] want %v got %v", d, i, test.Name, test.Want[j], vars)
 							return
 						}
 					}
 					if err = rows.Err(); err != nil {
 						t.Fatal(err)
 					}
-					if j != len(test.vals) {
-						t.Errorf("%s test[%d] %s vals length want %d got %d", d, i, test.name, len(test.vals), j)
+					if j != len(test.Want) {
+						t.Errorf("%s test[%d] %s vals length want %d got %d", d, i, test.Name, len(test.Want), j)
 						return
 					}
 				}()

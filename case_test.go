@@ -1,58 +1,121 @@
 package q
 
-import "testing"
+import (
+	"database/sql"
+	"fmt"
+	"testing"
+
+	"github.com/oov/q/qutil"
+)
 
 var caseTests = []struct {
 	Name string
-	C    *ZCaseBuilder
-	Want string
+	B    *ZCaseBuilder
+	Want sql.NullString
+	V    string
 }{
 	{
 		Name: "empty simple case",
-		C:    Case(C("test")),
-		Want: "NULL []",
+		B:    Case(C("id")),
+		Want: sql.NullString{"", false},
+		V:    "NULL []",
 	},
 	{
 		Name: "else only simple case",
-		C:    Case(C("test")).Else(0),
-		Want: "? [0]",
+		B:    Case(C("id")).Else(Unsafe("0")),
+		Want: sql.NullString{"0", true},
+		V:    "0 []",
 	},
 	{
-		Name: "no else simple case",
-		C:    Case(C("test")).When(0, 1),
-		Want: `CASE "test" WHEN ? THEN ? END [0 1]`,
+		Name: "no else simple case unmatched",
+		B:    Case(C("id")).When(0, 1),
+		Want: sql.NullString{"", false},
+		V:    `CASE "id" WHEN ? THEN ? END [0 1]`,
 	},
 	{
-		Name: "simple case",
-		C:    Case(C("test")).When(0, 1).Else(2),
-		Want: `CASE "test" WHEN ? THEN ? ELSE ? END [0 1 2]`,
+		Name: "no else simple case matched",
+		B:    Case(C("id")).When(1, 2),
+		Want: sql.NullString{"2", true},
+		V:    `CASE "id" WHEN ? THEN ? END [1 2]`,
+	},
+	{
+		Name: "simple case matched",
+		B:    Case(C("id")).When(1, 2).Else(1),
+		Want: sql.NullString{"2", true},
+		V:    `CASE "id" WHEN ? THEN ? ELSE ? END [1 2 1]`,
+	},
+	{
+		Name: "simple case unmatched",
+		B:    Case(C("id")).When(0, 1).Else(2),
+		Want: sql.NullString{"2", true},
+		V:    `CASE "id" WHEN ? THEN ? ELSE ? END [0 1 2]`,
 	},
 	{
 		Name: "empty searched case",
-		C:    Case(),
-		Want: "NULL []",
+		B:    Case(),
+		Want: sql.NullString{"", false},
+		V:    "NULL []",
 	},
 	{
 		Name: "else only searched case",
-		C:    Case().Else(0),
-		Want: "? [0]",
+		B:    Case().Else(Unsafe("0")),
+		Want: sql.NullString{"0", true},
+		V:    "0 []",
 	},
 	{
-		Name: "no else searched case",
-		C:    Case().When(Eq(C("test"), 0), 1),
-		Want: `CASE WHEN "test" = ? THEN ? END [0 1]`,
+		Name: "no else searched case unmatched",
+		B:    Case().When(Eq(C("id"), 0), 1),
+		Want: sql.NullString{"", false},
+		V:    `CASE WHEN "id" = ? THEN ? END [0 1]`,
 	},
 	{
-		Name: "searched case",
-		C:    Case().When(Eq(C("test"), 0), 1).Else(2),
-		Want: `CASE WHEN "test" = ? THEN ? ELSE ? END [0 1 2]`,
+		Name: "no else searched case matched",
+		B:    Case().When(Eq(C("id"), 1), 1),
+		Want: sql.NullString{"1", true},
+		V:    `CASE WHEN "id" = ? THEN ? END [1 1]`,
+	},
+	{
+		Name: "searched case unmatched",
+		B:    Case().When(Eq(C("id"), 0), 1).Else(2),
+		Want: sql.NullString{"2", true},
+		V:    `CASE WHEN "id" = ? THEN ? ELSE ? END [0 1 2]`,
+	},
+	{
+		Name: "searched case matched",
+		B:    Case().When(Eq(C("id"), 1), 2).Else(1),
+		Want: sql.NullString{"2", true},
+		V:    `CASE WHEN "id" = ? THEN ? ELSE ? END [1 2 1]`,
 	},
 }
 
 func TestCase(t *testing.T) {
 	for i, test := range caseTests {
-		if r := test.C.String(); r != test.Want {
-			t.Errorf("tests[%d] %s: want %q got %q", i, test.Name, test.Want, r)
+		if r := test.B.String(); r != test.V {
+			t.Errorf("tests[%d] %s: want %q got %q", i, test.Name, test.V, r)
+		}
+	}
+}
+
+func TestCaseOnDB(t *testing.T) {
+	for _, testData := range testModel {
+		err := testData.tester(func(db *sql.DB, d qutil.Dialect) {
+			defer exec(t, "drops", db, d, testData.drops)
+			exec(t, "drops", db, d, testData.drops)
+			exec(t, "creates", db, d, testData.creates)
+			exec(t, "inserts", db, d, testData.inserts)
+			for i, test := range caseTests {
+				var r sql.NullString
+				sql, args := Select().Column(test.B.C()).From(T("user")).Limit(1).OrderBy(C("id"), true).SetDialect(d).ToSQL()
+				if err := db.QueryRow(sql, args...).Scan(&r); err != nil {
+					t.Fatalf("%s tests[%d] %s Error: %v", d, i, test.Name, err)
+				}
+				if fmt.Sprint(r) != fmt.Sprint(test.Want) {
+					t.Errorf("%s tests[%d] %s want %v got %v", d, i, test.Name, test.Want, r)
+				}
+			}
+		})
+		if err != nil {
+			t.Fatal(err)
 		}
 	}
 }

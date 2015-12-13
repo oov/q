@@ -1,6 +1,8 @@
 package q
 
-import "github.com/oov/q/qutil"
+import (
+	"github.com/oov/q/qutil"
+)
 
 // ZUpdateBuilder implements a UPDATE builder.
 type ZUpdateBuilder struct {
