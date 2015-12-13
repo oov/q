@@ -20,7 +20,7 @@ func mySQLTest(f func(*sql.DB, qutil.Dialect)) error {
 	const (
 		User     = "username"
 		Password = "password"
-		DBName   = "sqructdb"
+		DBName   = "qdb"
 	)
 	c, err := dockertest.New(dockertest.Config{
 		Image: "mysql", // or "mysql:latest"
