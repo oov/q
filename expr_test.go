@@ -257,6 +257,24 @@ var expressionTests = []struct {
 	},
 }
 
+func TestNullCUnimplementedPanic(t *testing.T) {
+	defer func() {
+		if e := recover(); e == nil {
+			t.Error("want Panic got Nothing")
+		}
+	}()
+	nullExpr{}.C()
+}
+
+func TestInVEmptySlicePanic(t *testing.T) {
+	defer func() {
+		if e := recover(); e == nil {
+			t.Error("want Panic got Nothing")
+		}
+	}()
+	InV([]int{})
+}
+
 func TestExpression(t *testing.T) {
 	for i, test := range expressionTests {
 		if r := fmt.Sprint(test.E); r != test.V {
@@ -296,5 +314,20 @@ func TestExpressionOnDB(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestVariableStringer(t *testing.T) {
+	if want, r := `? [1]`, fmt.Sprint(V(1)); r != want {
+		t.Errorf(`V(1) want %s got %s`, want, r)
+	}
+	if want, r := `? AS "v" [1]`, fmt.Sprint(V(1).C("v")); r != want {
+		t.Errorf(`V(1).C() want %s got %s`, want, r)
+	}
+	if want, r := `(?,?,?) [1 2 3]`, fmt.Sprint(InV([]int{1, 2, 3})); r != want {
+		t.Errorf(`InV([]int{1, 2, 3}) want %s got %s`, want, r)
+	}
+	if want, r := `(?) AS "v" [1]`, fmt.Sprint(InV([]int{1}).C("v")); r != want {
+		t.Errorf(`InV([]int{1}).C() want %s got %s`, want, r)
 	}
 }
