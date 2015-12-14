@@ -93,7 +93,7 @@ func (b *ZInsertBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, b.Beginning...)
 	buf = append(buf, " INTO "...)
 
-	buf = b.Table.WriteDefinition(ctx, buf)
+	buf = b.Table.WriteTable(ctx, buf)
 	buf = append(buf, '(')
 	buf = b.Sets[0].Column.WriteColumn(ctx, buf)
 	for _, s := range b.Sets[1:] {

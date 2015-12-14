@@ -11,79 +11,79 @@ import (
 var caseTests = []struct {
 	Name string
 	B    *ZCaseBuilder
-	Want sql.NullString
+	Want sql.NullInt64
 	V    string
 }{
 	{
 		Name: "empty simple case",
 		B:    Case(C("id")),
-		Want: sql.NullString{"", false},
+		Want: sql.NullInt64{0, false},
 		V:    "NULL []",
 	},
 	{
 		Name: "else only simple case",
-		B:    Case(C("id")).Else(Unsafe("0")),
-		Want: sql.NullString{"0", true},
+		B:    Case(C("id")).Else(Unsafe(0)),
+		Want: sql.NullInt64{0, true},
 		V:    "0 []",
 	},
 	{
 		Name: "no else simple case unmatched",
 		B:    Case(C("id")).When(0, 1),
-		Want: sql.NullString{"", false},
+		Want: sql.NullInt64{0, false},
 		V:    `CASE "id" WHEN ? THEN ? END [0 1]`,
 	},
 	{
 		Name: "no else simple case matched",
 		B:    Case(C("id")).When(1, 2),
-		Want: sql.NullString{"2", true},
+		Want: sql.NullInt64{2, true},
 		V:    `CASE "id" WHEN ? THEN ? END [1 2]`,
 	},
 	{
 		Name: "simple case matched",
 		B:    Case(C("id")).When(1, 2).Else(1),
-		Want: sql.NullString{"2", true},
+		Want: sql.NullInt64{2, true},
 		V:    `CASE "id" WHEN ? THEN ? ELSE ? END [1 2 1]`,
 	},
 	{
 		Name: "simple case unmatched",
 		B:    Case(C("id")).When(0, 1).Else(2),
-		Want: sql.NullString{"2", true},
+		Want: sql.NullInt64{2, true},
 		V:    `CASE "id" WHEN ? THEN ? ELSE ? END [0 1 2]`,
 	},
 	{
 		Name: "empty searched case",
 		B:    Case(),
-		Want: sql.NullString{"", false},
+		Want: sql.NullInt64{0, false},
 		V:    "NULL []",
 	},
 	{
 		Name: "else only searched case",
 		B:    Case().Else(Unsafe("0")),
-		Want: sql.NullString{"0", true},
+		Want: sql.NullInt64{0, true},
 		V:    "0 []",
 	},
 	{
 		Name: "no else searched case unmatched",
 		B:    Case().When(Eq(C("id"), 0), 1),
-		Want: sql.NullString{"", false},
+		Want: sql.NullInt64{0, false},
 		V:    `CASE WHEN "id" = ? THEN ? END [0 1]`,
 	},
 	{
 		Name: "no else searched case matched",
 		B:    Case().When(Eq(C("id"), 1), 1),
-		Want: sql.NullString{"1", true},
+		Want: sql.NullInt64{1, true},
 		V:    `CASE WHEN "id" = ? THEN ? END [1 1]`,
 	},
 	{
 		Name: "searched case unmatched",
 		B:    Case().When(Eq(C("id"), 0), 1).Else(2),
-		Want: sql.NullString{"2", true},
+		Want: sql.NullInt64{2, true},
 		V:    `CASE WHEN "id" = ? THEN ? ELSE ? END [0 1 2]`,
 	},
 	{
 		Name: "searched case matched",
 		B:    Case().When(Eq(C("id"), 1), 2).Else(1),
-		Want: sql.NullString{"2", true},
+		Want: sql.NullInt64{2, true},
 		V:    `CASE WHEN "id" = ? THEN ? ELSE ? END [1 2 1]`,
 	},
 }
@@ -104,7 +104,7 @@ func TestCaseOnDB(t *testing.T) {
 			exec(t, "creates", db, d, testData.creates)
 			exec(t, "inserts", db, d, testData.inserts)
 			for i, test := range caseTests {
-				var r sql.NullString
+				var r sql.NullInt64
 				sql, args := Select().Column(test.B.C()).From(T("user")).Limit(1).OrderBy(C("id"), true).SetDialect(d).ToSQL()
 				if err := db.QueryRow(sql, args...).Scan(&r); err != nil {
 					t.Fatalf("%s tests[%d] %s Error: %v", d, i, test.Name, err)

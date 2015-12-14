@@ -99,7 +99,7 @@ func (b *ZUpdateBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, b.Beginning...)
 	buf = append(buf, ' ')
 
-	buf = b.Table.WriteDefinition(ctx, buf)
+	buf = b.Table.WriteTable(ctx, buf)
 
 	buf = append(buf, " SET "...)
 	for i, s := range b.Sets {

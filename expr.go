@@ -83,7 +83,7 @@ func (e *eqExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName.
 func (e *eqExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	lv, rv := e.Left, e.Right
 	if _, ok := lv.(nullExpr); ok {
-		lv, rv = rv, nil
+		lv, rv = rv, lv
 	}
 	if _, ok := rv.(nullExpr); ok {
 		buf = lv.WriteExpression(ctx, buf)
@@ -117,7 +117,7 @@ func (e *inExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 		// But at the same time, a result is a obvious expression.
 		// So replace the alternative valid expression which is the same result.
 		if e.Eq {
-			return append(buf, "'IN' == '()'"...)
+			return append(buf, "'IN' = '()'"...)
 		}
 		return append(buf, "'IN' != '()'"...)
 	}
@@ -183,7 +183,9 @@ func newIn(l interface{}, v reflect.Value, eq bool) Expression {
 // In the same way, when you pass slice of any type to r, Eq creates "x IN (?)".
 func Eq(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
-		return newIn(l, rv, true)
+		if _, ok := r.(Expression); !ok {
+			return newIn(l, rv, true)
+		}
 	}
 	return &eqExpr{
 		Eq:    true,
@@ -197,7 +199,9 @@ func Eq(l, r interface{}) Expression {
 // In the same way, when you pass slice of any type to r, Neq creates "x NOT IN (?)".
 func Neq(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
-		return newIn(l, rv, false)
+		if _, ok := r.(Expression); !ok {
+			return newIn(l, rv, false)
+		}
 	}
 	return &eqExpr{
 		Eq:    false,
@@ -209,7 +213,9 @@ func Neq(l, r interface{}) Expression {
 // In creates Expression such as "l IN r".
 func In(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
-		return newIn(l, rv, true)
+		if _, ok := r.(Expression); !ok {
+			return newIn(l, rv, true)
+		}
 	}
 	return &simpleExpr{
 		Op:    " IN ",
@@ -221,7 +227,9 @@ func In(l, r interface{}) Expression {
 // NotIn creates Expression such as "l NOT IN r".
 func NotIn(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
-		return newIn(l, rv, false)
+		if _, ok := r.(Expression); !ok {
+			return newIn(l, rv, false)
+		}
 	}
 	return &simpleExpr{
 		Op:    " NOT IN ",

@@ -8,113 +8,23 @@ import (
 	"github.com/oov/q/qutil"
 )
 
-var testModel = map[qutil.Dialect]struct {
-	tester  Tester
-	creates []string
-	inserts []string
-	drops   []string
-}{
-	MySQL: {
-		tester: mySQLTest,
-		creates: []string{
-			`CREATE TABLE IF NOT EXISTS user(id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255), age int) DEFAULT CHARSET=utf8mb4`,
-			`CREATE TABLE IF NOT EXISTS post(id INTEGER PRIMARY KEY AUTO_INCREMENT, user_id INTEGER REFERENCES user(id) ON DELETE CASCADE, title TEXT NOT NULL) DEFAULT CHARSET=utf8mb4`,
-			`CREATE TABLE IF NOT EXISTS tag(id INTEGER PRIMARY KEY AUTO_INCREMENT, value VARCHAR(255)) DEFAULT CHARSET=utf8mb4`,
-			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE, PRIMARY KEY (post_id, tag_id)) DEFAULT CHARSET=utf8mb4`,
-		},
-		inserts: []string{
-			`INSERT INTO user(id, name, age) VALUES (1, 'Shipon', 15)`,
-			`INSERT INTO user(id, name, age) VALUES (2, 'Mr.TireMan', 44)`,
-			`INSERT INTO post(id, user_id, title) VALUES (1, 1, '昨日見た夢の内容が凄い')`,
-			`INSERT INTO post(id, user_id, title) VALUES (2, 2, '氷の上で滑るタイヤの原因とは？')`,
-			`INSERT INTO post(id, user_id, title) VALUES (3, 1, '嘘じゃないんです')`,
-			`INSERT INTO post(id, user_id, title) VALUES (4, 2, '最近仕事が辛い')`,
-			`INSERT INTO tag(id, value) VALUES (1, 'Diary')`,
-			`INSERT INTO tag(id, value) VALUES (2, 'Ad')`,
-			`INSERT INTO tag(id, value) VALUES (3, 'ぼやき')`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (1, 1)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (2, 2)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (3, 1)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (3, 3)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (4, 3)`,
-		},
-		drops: []string{
-			`DROP TABLE IF EXISTS posttag`,
-			`DROP TABLE IF EXISTS post`,
-			`DROP TABLE IF EXISTS user`,
-			`DROP TABLE IF EXISTS tag`,
-		},
-	},
-	PostgreSQL: {
-		tester: postgreSQLTest,
-		creates: []string{
-			`CREATE TABLE IF NOT EXISTS "user"(id SERIAL PRIMARY KEY, name VARCHAR(255), age int)`,
-			`CREATE TABLE IF NOT EXISTS post(id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES "user"(id) ON DELETE CASCADE, title TEXT NOT NULL)`,
-			`CREATE TABLE IF NOT EXISTS tag(id SERIAL PRIMARY KEY, value VARCHAR(255))`,
-			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE, PRIMARY KEY (post_id, tag_id))`,
-		},
-		inserts: []string{
-			`INSERT INTO "user"(id, name, age) VALUES (1, 'Shipon', 15)`,
-			`INSERT INTO "user"(id, name, age) VALUES (2, 'Mr.TireMan', 44)`,
-			`INSERT INTO post(id, user_id, title) VALUES (1, 1, '昨日見た夢の内容が凄い')`,
-			`INSERT INTO post(id, user_id, title) VALUES (2, 2, '氷の上で滑るタイヤの原因とは？')`,
-			`INSERT INTO post(id, user_id, title) VALUES (3, 1, '嘘じゃないんです')`,
-			`INSERT INTO post(id, user_id, title) VALUES (4, 2, '最近仕事が辛い')`,
-			`INSERT INTO tag(id, value) VALUES (1, 'Diary')`,
-			`INSERT INTO tag(id, value) VALUES (2, 'Ad')`,
-			`INSERT INTO tag(id, value) VALUES (3, 'ぼやき')`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (1, 1)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (2, 2)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (3, 1)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (3, 3)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (4, 3)`,
-		},
-		drops: []string{
-			`DROP TABLE IF EXISTS posttag`,
-			`DROP TABLE IF EXISTS post`,
-			`DROP TABLE IF EXISTS "user"`,
-			`DROP TABLE IF EXISTS tag`,
-		},
-	},
-	SQLite: {
-		tester: sqliteTest,
-		creates: []string{
-			`CREATE TABLE IF NOT EXISTS user(id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(255), age int)`,
-			`CREATE TABLE IF NOT EXISTS post(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES user(id) ON DELETE CASCADE, title TEXT NOT NULL)`,
-			`CREATE TABLE IF NOT EXISTS tag(id INTEGER PRIMARY KEY AUTOINCREMENT, value VARCHAR(255))`,
-			`CREATE TABLE IF NOT EXISTS posttag(post_id INTEGER NOT NULL REFERENCES post(id) ON DELETE CASCADE, tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE, PRIMARY KEY (post_id, tag_id))`,
-		},
-		inserts: []string{
-			`INSERT INTO user(id, name, age) VALUES (1, 'Shipon', 15)`,
-			`INSERT INTO user(id, name, age) VALUES (2, 'Mr.TireMan', 44)`,
-			`INSERT INTO post(id, user_id, title) VALUES (1, 1, '昨日見た夢の内容が凄い')`,
-			`INSERT INTO post(id, user_id, title) VALUES (2, 2, '氷の上で滑るタイヤの原因とは？')`,
-			`INSERT INTO post(id, user_id, title) VALUES (3, 1, '嘘じゃないんです')`,
-			`INSERT INTO post(id, user_id, title) VALUES (4, 2, '最近仕事が辛い')`,
-			`INSERT INTO tag(id, value) VALUES (1, 'Diary')`,
-			`INSERT INTO tag(id, value) VALUES (2, 'Ad')`,
-			`INSERT INTO tag(id, value) VALUES (3, 'ぼやき')`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (1, 1)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (2, 2)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (3, 1)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (3, 3)`,
-			`INSERT INTO posttag(post_id, tag_id) VALUES (4, 3)`,
-		},
-		drops: []string{
-			`DROP TABLE IF EXISTS posttag`,
-			`DROP TABLE IF EXISTS post`,
-			`DROP TABLE IF EXISTS user`,
-			`DROP TABLE IF EXISTS tag`,
-		},
-	},
-}
-
 var selectTests = []struct {
 	Name string
 	B    *ZSelectBuilder
 	Cols []string
 	Want [][]string
+	V    string
 }{
+	{
+		Name: "begnning",
+		B:    Select("select").From(T("user")),
+		Cols: []string{"id", "name", "age"},
+		Want: [][]string{
+			{"1", "Shipon", "15"},
+			{"2", "Mr.TireMan", "44"},
+		},
+		V: `select * FROM "user" []`,
+	},
 	{
 		Name: "Simple Select",
 		B:    Select().From(T("user")),
@@ -123,6 +33,7 @@ var selectTests = []struct {
 			{"1", "Shipon", "15"},
 			{"2", "Mr.TireMan", "44"},
 		},
+		V: `SELECT * FROM "user" []`,
 	},
 	{
 		Name: "Single Join",
@@ -140,6 +51,7 @@ var selectTests = []struct {
 			{"3", "1", "嘘じゃないんです", "1", "Shipon", "15"},
 			{"4", "2", "最近仕事が辛い", "2", "Mr.TireMan", "44"},
 		},
+		V: `SELECT * FROM "post" AS "p" INNER JOIN "user" AS "u" ON "p"."user_id" = "u"."id" []`,
 	},
 	{
 		Name: "Multiple Join",
@@ -166,36 +78,63 @@ var selectTests = []struct {
 			{"3", "ぼやき"},
 			{"4", "ぼやき"},
 		},
+		V: `SELECT "p"."id" AS "i", "t"."value" AS "v" FROM "post" AS "p" INNER JOIN ("posttag" AS "pt" INNER JOIN "tag" AS "t" ON "pt"."tag_id" = "t"."id") ON "p"."id" = "pt"."post_id" []`,
+	},
+	{
+		Name: "Limit",
+		B:    Select().Column(C("id", "i")).From(T("post")).Limit(2).OrderBy(C("id"), true),
+		Cols: []string{"i"},
+		Want: [][]string{{"1"}, {"2"}},
+		V:    `SELECT "id" AS "i" FROM "post" ORDER BY "id" ASC LIMIT ? [2]`,
+	},
+	{
+		Name: "Limit + Offset",
+		B:    Select().Column(C("id", "i")).From(T("post")).Limit(2).Offset(1).OrderBy(C("id"), true),
+		Cols: []string{"i"},
+		Want: [][]string{{"2"}, {"3"}},
+		V:    `SELECT "id" AS "i" FROM "post" ORDER BY "id" ASC LIMIT ? OFFSET ? [2 1]`,
 	},
 	{
 		Name: "GroupBy",
 		B:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")),
 		Cols: []string{"uid", "c"},
 		Want: [][]string{{"1", "2"}, {"2", "2"}},
+		V:    `SELECT "user_id" AS "uid", COUNT(*) AS "c" FROM "post" GROUP BY "user_id" []`,
+	},
+	{
+		Name: "GroupBy Multiple",
+		B:    Select().Column(CountAll().C("c")).From(T("post")).GroupBy(C("user_id"), C("id")),
+		Cols: []string{"c"},
+		Want: [][]string{{"1"}, {"1"}, {"1"}, {"1"}},
+		V:    `SELECT COUNT(*) AS "c" FROM "post" GROUP BY "user_id", "id" []`,
 	},
 	{
 		Name: "Having",
 		B:    Select().Column(C("user_id", "uid"), CountAll().C("c")).From(T("post")).GroupBy(C("user_id")).Having(Eq(C("user_id"), 1)),
 		Cols: []string{"uid", "c"},
 		Want: [][]string{{"1", "2"}},
+		V:    `SELECT "user_id" AS "uid", COUNT(*) AS "c" FROM "post" GROUP BY "user_id" HAVING "user_id" = ? [1]`,
 	},
 	{
 		Name: "OrderBy",
 		B:    Select().Column(C("user_id", "u"), C("id", "i")).From(T("post")).OrderBy(C("user_id"), true).OrderBy(C("id"), false),
 		Cols: []string{"u", "i"},
 		Want: [][]string{{"1", "3"}, {"1", "1"}, {"2", "4"}, {"2", "2"}},
+		V:    `SELECT "user_id" AS "u", "id" AS "i" FROM "post" ORDER BY "user_id" ASC, "id" DESC []`,
 	},
 	{
 		Name: "SubQuery(Table)",
 		B:    Select().From(Select().Column(C("id", "i")).From(T("user")).T("sq")),
 		Cols: []string{"i"},
 		Want: [][]string{{"1"}, {"2"}},
+		V:    `SELECT * FROM (SELECT "id" AS "i" FROM "user") AS "sq" []`,
 	},
 	{
 		Name: "SubQuery(Expression)",
 		B:    Select().Column(C("id", "i")).From(T("post")).Where(In(C("user_id"), Select().Column(C("id", "i")).From(T("user")))),
 		Cols: []string{"i"},
 		Want: [][]string{{"1"}, {"2"}, {"3"}, {"4"}},
+		V:    `SELECT "id" AS "i" FROM "post" WHERE "user_id" IN (SELECT "id" AS "i" FROM "user") []`,
 	},
 	{
 		Name: "SubQuery(Column)",
@@ -209,106 +148,124 @@ var selectTests = []struct {
 		}(),
 		Cols: []string{"n"},
 		Want: [][]string{{"Shipon"}, {"Mr.TireMan"}, {"Shipon"}, {"Mr.TireMan"}},
+		V:    `SELECT (SELECT "user"."name" FROM "user" WHERE "post"."user_id" = "user"."id") AS "n" FROM "post" []`,
 	},
 	{
 		Name: "Eq",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Eq(C("age"), 15)),
 		Cols: []string{"id"},
 		Want: [][]string{{"1"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE "age" = ? [15]`,
 	},
 	{
 		Name: "Neq",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Neq(C("age"), 15)),
 		Cols: []string{"id"},
 		Want: [][]string{{"2"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE "age" != ? [15]`,
 	},
 	{
 		Name: "Lt",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Lt(C("age"), 44)),
 		Cols: []string{"id"},
 		Want: [][]string{{"1"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE "age" < ? [44]`,
 	},
 	{
 		Name: "Lte",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Lte(C("age"), 44)),
 		Cols: []string{"id"},
 		Want: [][]string{{"1"}, {"2"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE "age" <= ? [44]`,
 	},
 	{
 		Name: "Gt",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Gt(C("age"), 15)),
 		Cols: []string{"id"},
 		Want: [][]string{{"2"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE "age" > ? [15]`,
 	},
 	{
 		Name: "Gte",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Gte(C("age"), 15)),
 		Cols: []string{"id"},
 		Want: [][]string{{"1"}, {"2"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE "age" >= ? [15]`,
 	},
 	{
 		Name: "And",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(And(Eq(C("id"), 1), Eq(C("age"), 15))),
 		Cols: []string{"id"},
 		Want: [][]string{{"1"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE ("id" = ?)AND("age" = ?) [1 15]`,
 	},
 	{
 		Name: "Or",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Or(Eq(C("id"), 2), Eq(C("age"), 15))),
 		Cols: []string{"id"},
 		Want: [][]string{{"1"}, {"2"}},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE ("id" = ?)OR("age" = ?) [2 15]`,
 	},
 	{
 		Name: "And(empty)",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(And()),
 		Want: [][]string{},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE ('empty' = 'AND') []`,
 	},
 	{
 		Name: "Or(empty)",
 		B:    Select().Column(C("id", "id")).From(T("user")).Where(Or()),
 		Want: [][]string{},
+		V:    `SELECT "id" AS "id" FROM "user" WHERE ('empty' = 'OR') []`,
 	},
 	{
 		Name: "CountAll",
 		B:    Select().Column(CountAll().C("a")).From(T("user")),
 		Cols: []string{"a"},
 		Want: [][]string{{"2"}},
+		V:    `SELECT COUNT(*) AS "a" FROM "user" []`,
 	},
 	{
 		Name: "Count",
 		B:    Select().Column(Count(C("id")).C("a")).From(T("user")),
 		Cols: []string{"a"},
 		Want: [][]string{{"2"}},
+		V:    `SELECT COUNT("id") AS "a" FROM "user" []`,
 	},
 	{
 		Name: "Max",
 		B:    Select().Column(Max(C("age")).C("a")).From(T("user")),
 		Cols: []string{"a"},
 		Want: [][]string{{"44"}},
+		V:    `SELECT MAX("age") AS "a" FROM "user" []`,
 	},
 	{
 		Name: "Min",
 		B:    Select().Column(Min(C("age")).C("a")).From(T("user")),
 		Cols: []string{"a"},
 		Want: [][]string{{"15"}},
+		V:    `SELECT MIN("age") AS "a" FROM "user" []`,
 	},
 	{
 		Name: "Sum",
 		B:    Select().Column(Sum(C("age")).C("a")).From(T("user")),
 		Cols: []string{"a"},
 		Want: [][]string{{"59"}},
+		V:    `SELECT SUM("age") AS "a" FROM "user" []`,
 	},
 	{
 		Name: "Simple CASE",
 		B:    Select().Column(Case(C("age")).When(44, 10).When(15, 1).Else(0).C("r")).From(T("user")),
 		Cols: []string{"r"},
 		Want: [][]string{{"1"}, {"10"}},
+		V:    `SELECT CASE "age" WHEN ? THEN ? WHEN ? THEN ? ELSE ? END AS "r" FROM "user" [44 10 15 1 0]`,
 	},
 	{
 		Name: "Searched CASE",
 		B:    Select().Column(Case().When(Eq(C("age"), 44), 10).When(Eq(C("age"), 15), 1).Else(0).C("r")).From(T("user")),
 		Cols: []string{"r"},
 		Want: [][]string{{"1"}, {"10"}},
+		V:    `SELECT CASE WHEN "age" = ? THEN ? WHEN "age" = ? THEN ? ELSE ? END AS "r" FROM "user" [44 10 15 1 0]`,
 	},
 	{
 		Name: "Simple CASE + Sum",
@@ -317,77 +274,21 @@ var selectTests = []struct {
 		B:    Select().Column(Sum(Case(C("age")).When(44, 10).When(15, (1)).Else(Unsafe(0))).C("r")).From(T("user")),
 		Cols: []string{"r"},
 		Want: [][]string{{"11"}},
+		V:    `SELECT SUM(CASE "age" WHEN ? THEN ? WHEN ? THEN ? ELSE 0 END) AS "r" FROM "user" [44 10 15 1]`,
 	},
 	{
 		Name: "Searched CASE + Sum",
 		B:    Select().Column(Sum(Case().When(Eq(C("age"), 44), 10).When(Eq(C("age"), 15), 1).Else(Unsafe(0))).C("r")).From(T("user")),
 		Cols: []string{"r"},
 		Want: [][]string{{"11"}},
+		V:    `SELECT SUM(CASE WHEN "age" = ? THEN ? WHEN "age" = ? THEN ? ELSE 0 END) AS "r" FROM "user" [44 10 15 1]`,
 	},
 }
 
 func TestSelect(t *testing.T) {
-	tests := []struct {
-		Name string
-		B    *ZSelectBuilder
-		Want string
-	}{
-		{
-			Name: "empty",
-			B:    Select(),
-			Want: `SELECT * []`,
-		},
-		{
-			Name: "empty+beginning",
-			B:    Select("SELECT SQL_NO_CACHE"),
-			Want: `SELECT SQL_NO_CACHE * []`,
-		},
-		{
-			Name: "Limit Offset",
-			B:    Select().From(T("test")).Limit(20).Offset(10),
-			Want: `SELECT * FROM "test" LIMIT ? OFFSET ? [20 10]`,
-		},
-		{
-			Name: "GroupBy",
-			B:    Select().From(T("test")).GroupBy(C("a"), C("b")),
-			Want: `SELECT * FROM "test" GROUP BY "a", "b" []`,
-		},
-		{
-			Name: "OrderBy",
-			B:    Select().From(T("test")).OrderBy(C("a"), true).OrderBy(C("b"), false),
-			Want: `SELECT * FROM "test" ORDER BY "a" ASC, "b" DESC []`,
-		},
-		{
-			Name: "SubQuery(Table)",
-			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T()),
-			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") []`,
-		},
-		{
-			Name: "SubQuery(Table alias)",
-			B:    Select().From(Select().Column(C("id", "i")).From(T("test")).T("sq")),
-			Want: `SELECT * FROM (SELECT "id" AS "i" FROM "test") AS "sq" []`,
-		},
-		{
-			Name: "SubQuery(Expression)",
-			B:    Select().From(T("t2")).Where(In(C("id"), Select().Column(C("id", "i")).From(T("test")))),
-			Want: `SELECT * FROM "t2" WHERE "id" IN (SELECT "id" AS "i" FROM "test") []`,
-		},
-		{
-			Name: "SubQuery(Column)",
-			B: func() *ZSelectBuilder {
-				user, post := T("user"), T("post")
-				return Select().Column(
-					Select().Column(user.C("name")).From(user).Where(
-						Eq(post.C("user_id"), user.C("id")),
-					).C("n"),
-				).From(post)
-			}(),
-			Want: `SELECT (SELECT "user"."name" FROM "user" WHERE "post"."user_id" = "user"."id") AS "n" FROM "post" []`,
-		},
-	}
-	for i, test := range tests {
-		if r := fmt.Sprint(test.B); r != test.Want {
-			t.Errorf("tests[%d] %s: want %q got %q", i, test.Name, test.Want, r)
+	for i, test := range selectTests {
+		if r := fmt.Sprint(test.B); r != test.V {
+			t.Errorf("tests[%d] %s: want %s got %s", i, test.Name, test.V, r)
 		}
 	}
 }

@@ -179,12 +179,8 @@ func (b *ZSelectBuilder) String() string {
 }
 
 // T creates Table from this builder.
-func (b *ZSelectBuilder) T(aliasName ...string) Table {
-	r := &selectBuilderAsTable{ZSelectBuilder: b}
-	if len(aliasName) == 0 {
-		return r
-	}
-	return &tableAlias{Table: r, Alias: aliasName[0]}
+func (b *ZSelectBuilder) T(aliasName string) Table {
+	return &selectBuilderAsTable{ZSelectBuilder: b, Alias: aliasName}
 }
 
 // C implements Expression interface.

@@ -1,8 +1,11 @@
 package qutil
 
 type Dialect interface {
+	String() string
 	Placeholder() Placeholder
 	Quote(buf []byte, word string) []byte
+	CanUseInnerJoinWithoutCondition() bool
+	CanUseLeftJoinWithoutCondition() bool
 	CharLengthName() string
 }
 
@@ -37,31 +40,40 @@ var (
 
 type mySQL struct{}
 
-func (mySQL) String() string                       { return "MySQL" }
-func (mySQL) Placeholder() Placeholder             { return genericPlaceholder{} }
-func (mySQL) Quote(buf []byte, word string) []byte { return escape(buf, '`', word) }
-func (mySQL) CharLengthName() string               { return "CHAR_LENGTH" }
+func (mySQL) String() string                        { return "MySQL" }
+func (mySQL) Placeholder() Placeholder              { return genericPlaceholder{} }
+func (mySQL) Quote(buf []byte, word string) []byte  { return escape(buf, '`', word) }
+func (mySQL) CanUseInnerJoinWithoutCondition() bool { return true }
+func (mySQL) CanUseLeftJoinWithoutCondition() bool  { return false }
+func (mySQL) CharLengthName() string                { return "CHAR_LENGTH" }
 
 type postgreSQL struct{}
 
-func (postgreSQL) String() string                       { return "PostgreSQL" }
-func (postgreSQL) Placeholder() Placeholder             { return &postgresPlaceholder{} }
-func (postgreSQL) Quote(buf []byte, word string) []byte { return escape(buf, '"', word) }
-func (postgreSQL) CharLengthName() string               { return "CHAR_LENGTH" }
+func (postgreSQL) String() string                        { return "PostgreSQL" }
+func (postgreSQL) Placeholder() Placeholder              { return &postgresPlaceholder{} }
+func (postgreSQL) Quote(buf []byte, word string) []byte  { return escape(buf, '"', word) }
+func (postgreSQL) CanUseInnerJoinWithoutCondition() bool { return false }
+func (postgreSQL) CanUseLeftJoinWithoutCondition() bool  { return false }
+func (postgreSQL) CharLengthName() string                { return "CHAR_LENGTH" }
 
 type sqlite struct{}
 
-func (sqlite) String() string                       { return "SQLite" }
-func (sqlite) Placeholder() Placeholder             { return genericPlaceholder{} }
-func (sqlite) Quote(buf []byte, word string) []byte { return escape(buf, '"', word) }
-func (sqlite) CharLengthName() string               { return "LENGTH" }
+func (sqlite) String() string                        { return "SQLite" }
+func (sqlite) Placeholder() Placeholder              { return genericPlaceholder{} }
+func (sqlite) Quote(buf []byte, word string) []byte  { return escape(buf, '"', word) }
+func (sqlite) CanUseInnerJoinWithoutCondition() bool { return true }
+func (sqlite) CanUseLeftJoinWithoutCondition() bool  { return true }
+func (sqlite) CharLengthName() string                { return "LENGTH" }
 
 type fakeDialect struct{}
 
-func (fakeDialect) Quote(buf []byte, word string) []byte { return escape(buf, '"', word) }
-func (fakeDialect) Placeholder() Placeholder             { return fakeDialect{} }
-func (fakeDialect) Next(buf []byte) []byte               { return append(buf, '?') }
-func (fakeDialect) CharLengthName() string               { return "CHAR_LENGTH" }
+func (fakeDialect) String() string                        { return "FakeDialect" }
+func (fakeDialect) Quote(buf []byte, word string) []byte  { return escape(buf, '"', word) }
+func (fakeDialect) Placeholder() Placeholder              { return fakeDialect{} }
+func (fakeDialect) Next(buf []byte) []byte                { return append(buf, '?') }
+func (fakeDialect) CanUseInnerJoinWithoutCondition() bool { return true }
+func (fakeDialect) CanUseLeftJoinWithoutCondition() bool  { return true }
+func (fakeDialect) CharLengthName() string                { return "CHAR_LENGTH" }
 
 type genericPlaceholder struct{}
 

@@ -9,7 +9,7 @@ type Table interface {
 
 	InnerJoin(table Table, conds ...Expression) Table
 	LeftJoin(table Table, conds ...Expression) Table
-	CrossJoin(table Table, conds ...Expression) Table
+	CrossJoin(table Table) Table
 
 	JoinIndex(i int) (string, Table, Expressions)
 	JoinLen() int
@@ -52,11 +52,10 @@ func (j *joinable) LeftJoin(table Table, conds ...Expression) {
 	})
 }
 
-func (j *joinable) CrossJoin(table Table, conds ...Expression) {
+func (j *joinable) CrossJoin(table Table) {
 	j.Joins = append(j.Joins, join{
 		Type:  "CROSS",
 		Table: table,
-		Conds: And(conds...),
 	})
 }
 
@@ -82,7 +81,13 @@ func (j *joinable) WriteJoins(ctx *qutil.Context, buf []byte) []byte {
 		if hasJoins {
 			buf = append(buf, ')')
 		}
-		if v.Conds.Len() > 0 {
+
+		if v.Conds == nil || v.Conds.Len() == 0 {
+			if (v.Type == "INNER" && !ctx.Dialect.CanUseInnerJoinWithoutCondition()) ||
+				(v.Type == "LEFT" && !ctx.Dialect.CanUseLeftJoinWithoutCondition()) {
+				buf = append(buf, " ON 'no' != 'cond'"...)
+			}
+		} else {
 			buf = append(buf, " ON "...)
 			buf = v.Conds.WriteExpression(ctx, buf)
 		}
@@ -119,9 +124,6 @@ func (t *tableAlias) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 }
 
 func (t *tableAlias) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
-	if ctx.CUD {
-		return t.Table.WriteTable(ctx, buf)
-	}
 	buf = t.Table.WriteTable(ctx, buf)
 	buf = append(buf, " AS "...)
 	buf = t.WriteTable(ctx, buf)
@@ -139,8 +141,8 @@ func (t *tableAlias) LeftJoin(table Table, conds ...Expression) Table {
 	return t
 }
 
-func (t *tableAlias) CrossJoin(table Table, conds ...Expression) Table {
-	t.Table.CrossJoin(table, conds...)
+func (t *tableAlias) CrossJoin(table Table) Table {
+	t.Table.CrossJoin(table)
 	return t
 }
 
@@ -158,9 +160,6 @@ func (t *table) WriteTable(ctx *qutil.Context, buf []byte) []byte {
 }
 
 func (t *table) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
-	if ctx.CUD {
-		return t.WriteTable(ctx, buf)
-	}
 	buf = t.WriteTable(ctx, buf)
 	buf = t.WriteJoins(ctx, buf)
 	return buf
@@ -180,13 +179,14 @@ func (t *table) LeftJoin(table Table, conds ...Expression) Table {
 	return t
 }
 
-func (t *table) CrossJoin(table Table, conds ...Expression) Table {
-	t.joinable.CrossJoin(table, conds...)
+func (t *table) CrossJoin(table Table) Table {
+	t.joinable.CrossJoin(table)
 	return t
 }
 
 type selectBuilderAsTable struct {
 	*ZSelectBuilder
+	Alias string
 	joinable
 }
 
@@ -195,13 +195,13 @@ func (t *selectBuilderAsTable) String() string {
 }
 
 func (t *selectBuilderAsTable) WriteTable(ctx *qutil.Context, buf []byte) []byte {
-	buf = append(buf, '(')
-	buf = t.ZSelectBuilder.write(ctx, buf)
-	buf = append(buf, ')')
-	return buf
+	return ctx.Dialect.Quote(buf, t.Alias)
 }
 
 func (t *selectBuilderAsTable) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
+	buf = append(buf, '(')
+	buf = t.ZSelectBuilder.write(ctx, buf)
+	buf = append(buf, ") AS "...)
 	buf = t.WriteTable(ctx, buf)
 	buf = t.WriteJoins(ctx, buf)
 	return buf
@@ -221,8 +221,8 @@ func (t *selectBuilderAsTable) LeftJoin(table Table, conds ...Expression) Table 
 	return t
 }
 
-func (t *selectBuilderAsTable) CrossJoin(table Table, conds ...Expression) Table {
-	t.joinable.CrossJoin(table, conds...)
+func (t *selectBuilderAsTable) CrossJoin(table Table) Table {
+	t.joinable.CrossJoin(table)
 	return t
 }
 

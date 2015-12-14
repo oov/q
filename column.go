@@ -43,9 +43,6 @@ func (c *columnAlias) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
 }
 
 func (c *columnAlias) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
-	if ctx.CUD {
-		return c.Column.WriteColumn(ctx, buf)
-	}
 	buf = c.Column.WriteColumn(ctx, buf)
 	buf = append(buf, " AS "...)
 	return c.WriteColumn(ctx, buf)

@@ -255,11 +255,11 @@ func ExampleZSelectBuilder_From() {
 	fmt.Println("Complex:", q.Select().From(user, post).Where(
 		q.Eq(user.C("id"), post.C("user_id")),
 	))
-	fmt.Println("Builder:", q.Select().From(q.Select().From(q.T("post")).T()))
+	fmt.Println("Builder:", q.Select().From(q.Select().From(q.T("post")).T("p")))
 	// Output:
 	// Simple:  SELECT * FROM "user" []
 	// Complex: SELECT * FROM "user", "post" WHERE "user"."id" = "post"."user_id" []
-	// Builder: SELECT * FROM (SELECT * FROM "post") []
+	// Builder: SELECT * FROM (SELECT * FROM "post") AS "p" []
 }
 
 // This is an example of how to use ZSelectBuilder.SQL.
