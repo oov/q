@@ -1,7 +1,6 @@
 package qutil
 
 type Dialect interface {
-	String() string
 	Placeholder() Placeholder
 	Quote(buf []byte, word string) []byte
 	CanUseInnerJoinWithoutCondition() bool

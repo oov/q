@@ -51,7 +51,6 @@ type Expressions interface {
 
 type nullExpr struct{}
 
-func (e nullExpr) String() string               { return "NULL" }
 func (e nullExpr) C(aliasName ...string) Column { panic("not implemeneted") }
 func (e nullExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	return append(buf, "NULL"...)
