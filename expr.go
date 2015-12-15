@@ -21,6 +21,17 @@ func expressionToString(e Expression) string {
 	return toString(buf, ctx.Args)
 }
 
+func writeIntf(x interface{}, ctx *qutil.Context, buf []byte) []byte {
+	if x == nil {
+		return append(buf, "NULL"...)
+	}
+	if v, ok := x.(Expression); ok {
+		return v.WriteExpression(ctx, buf)
+	}
+	ctx.Args = append(ctx.Args, x)
+	return ctx.Placeholder.Next(buf)
+}
+
 func interfaceToExpression(x interface{}) Expression {
 	if x == nil {
 		return nullExpr{}
@@ -58,53 +69,53 @@ func (e nullExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 
 type simpleExpr struct {
 	Op    string
-	Left  Expression
-	Right Expression
+	Left  interface{}
+	Right interface{}
 }
 
 func (e *simpleExpr) String() string               { return expressionToString(e) }
 func (e *simpleExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
 func (e *simpleExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	buf = e.Left.WriteExpression(ctx, buf)
+	buf = writeIntf(e.Left, ctx, buf)
 	buf = append(buf, e.Op...)
-	buf = e.Right.WriteExpression(ctx, buf)
+	buf = writeIntf(e.Right, ctx, buf)
 	return buf
 }
 
 type eqExpr struct {
 	Eq    bool
-	Left  Expression
-	Right Expression
+	Left  interface{}
+	Right interface{}
 }
 
 func (e *eqExpr) String() string               { return expressionToString(e) }
 func (e *eqExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
 func (e *eqExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	lv, rv := e.Left, e.Right
-	if _, ok := lv.(nullExpr); ok {
+	if lv == nil {
 		lv, rv = rv, lv
 	}
-	if _, ok := rv.(nullExpr); ok {
-		buf = lv.WriteExpression(ctx, buf)
+	if rv == nil {
+		buf = writeIntf(lv, ctx, buf)
 		if e.Eq {
 			return append(buf, " IS NULL"...)
 		}
 		return append(buf, " IS NOT NULL"...)
 	}
 
-	buf = lv.WriteExpression(ctx, buf)
+	buf = writeIntf(lv, ctx, buf)
 	if e.Eq {
 		buf = append(buf, " = "...)
 	} else {
 		buf = append(buf, " != "...)
 	}
-	buf = rv.WriteExpression(ctx, buf)
+	buf = writeIntf(rv, ctx, buf)
 	return buf
 }
 
 type inExpr struct {
 	Eq    bool
-	Left  Expression
+	Left  interface{}
 	Right inVariable
 }
 
@@ -121,7 +132,7 @@ func (e *inExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 		return append(buf, "'IN' != '()'"...)
 	}
 
-	buf = e.Left.WriteExpression(ctx, buf)
+	buf = writeIntf(e.Left, ctx, buf)
 	if e.Eq {
 		buf = append(buf, " IN "...)
 	} else {
@@ -175,7 +186,7 @@ func newIn(l interface{}, v reflect.Value, eq bool) Expression {
 	for i := 0; i < ln; i++ {
 		r[i] = v.Index(i).Interface()
 	}
-	return &inExpr{Eq: eq, Left: interfaceToExpression(l), Right: r}
+	return &inExpr{Eq: eq, Left: l, Right: r}
 }
 
 // Eq creates Expression such as "l = r".
@@ -189,8 +200,8 @@ func Eq(l, r interface{}) Expression {
 	}
 	return &eqExpr{
 		Eq:    true,
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
@@ -205,8 +216,8 @@ func Neq(l, r interface{}) Expression {
 	}
 	return &eqExpr{
 		Eq:    false,
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
@@ -219,8 +230,8 @@ func In(l, r interface{}) Expression {
 	}
 	return &simpleExpr{
 		Op:    " IN ",
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
@@ -233,8 +244,8 @@ func NotIn(l, r interface{}) Expression {
 	}
 	return &simpleExpr{
 		Op:    " NOT IN ",
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
@@ -242,8 +253,8 @@ func NotIn(l, r interface{}) Expression {
 func Gt(l, r interface{}) Expression {
 	return &simpleExpr{
 		Op:    " > ",
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
@@ -251,8 +262,8 @@ func Gt(l, r interface{}) Expression {
 func Gte(l, r interface{}) Expression {
 	return &simpleExpr{
 		Op:    " >= ",
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
@@ -260,8 +271,8 @@ func Gte(l, r interface{}) Expression {
 func Lt(l, r interface{}) Expression {
 	return &simpleExpr{
 		Op:    " < ",
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
@@ -269,8 +280,8 @@ func Lt(l, r interface{}) Expression {
 func Lte(l, r interface{}) Expression {
 	return &simpleExpr{
 		Op:    " <= ",
-		Left:  interfaceToExpression(l),
-		Right: interfaceToExpression(r),
+		Left:  l,
+		Right: r,
 	}
 }
 
