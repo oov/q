@@ -356,17 +356,17 @@ func (v *variable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 // InV creates Variable from slice.
 // It can be used with IN operator.
 func InV(slice interface{}) Variable {
-	var v inVariable
 	s := reflect.ValueOf(slice)
 	if s.Kind() != reflect.Slice {
-		v = append(v, slice)
-		return v
+		return inVariable{slice}
 	}
-	if s.Len() == 0 {
+	ln := s.Len()
+	if ln == 0 {
 		panic("q: need at least one value to create Variable.")
 	}
-	for i, l := 0, s.Len(); i < l; i++ {
-		v = append(v, s.Index(i).Interface())
+	v := make(inVariable, ln)
+	for i := 0; i < ln; i++ {
+		v[i] = s.Index(i).Interface()
 	}
 	return v
 }
