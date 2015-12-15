@@ -385,3 +385,24 @@ func TestSelectOnDB(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkSelectOverall(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		user, post := T("user"), T("post")
+		Select().Column(
+			user.C("id"),
+			user.C("age"),
+			user.C("name"),
+			Select().Column(user.C("name")).From(user).Where(
+				Eq(post.C("user_id"), user.C("id")),
+			).C("n"),
+		).From(post).Where(
+			Eq(user.C("id"), []int{1, 2, 3, 4, 5}),
+			Lt(user.C("age"), 18),
+		).GroupBy(
+			user.C("age"),
+		).Having(
+			Eq(user.C("id"), nil),
+		).OrderBy(user.C("id"), true).Limit(10).Offset(20).ToSQL()
+	}
+}
