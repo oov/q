@@ -331,3 +331,21 @@ func TestVariableStringer(t *testing.T) {
 		t.Errorf(`InV([]int{1}).C() want %s got %s`, want, r)
 	}
 }
+
+func BenchmarkSimpleExpr(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Gt(C("test"), 1)
+	}
+}
+
+func BenchmarkEqExpr(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Eq(C("test"), 1)
+	}
+}
+
+func BenchmarkInExpr(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		In(C("test"), []int{1, 2, 3})
+	}
+}
