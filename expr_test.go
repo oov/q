@@ -350,6 +350,12 @@ func BenchmarkInExpr(b *testing.B) {
 	}
 }
 
+func BenchmarkLogicalExpr(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		In(C("test"), []int{1, 2, 3})
+	}
+}
+
 func BenchmarkInV(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		InV([]int{1, 2, 3})

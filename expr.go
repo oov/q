@@ -290,6 +290,9 @@ func Lte(l, r interface{}) Expression {
 // If you output expression which isn't adding Expression at all,
 // it generates "('empty' = 'AND')".
 func And(exprs ...Expression) Expressions {
+	if len(exprs) == 0 {
+		exprs = make([]Expression, 0, 4)
+	}
 	return &logicalExpr{Op: "AND", Exprs: exprs}
 }
 
@@ -298,6 +301,9 @@ func And(exprs ...Expression) Expressions {
 // If you output expression which isn't adding Expression at all,
 // it generates "('empty' = 'OR')".
 func Or(exprs ...Expression) Expressions {
+	if len(exprs) == 0 {
+		exprs = make([]Expression, 0, 4)
+	}
 	return &logicalExpr{Op: "OR", Exprs: exprs}
 }
 
