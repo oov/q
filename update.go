@@ -72,6 +72,8 @@ func (b *ZUpdateBuilder) Unset(c Column) *ZUpdateBuilder {
 	if i == -1 {
 		return b
 	}
+	b.Sets[i].Column = nil
+	b.Sets[i].Expression = nil
 	if i == 0 {
 		b.Sets = b.Sets[1:]
 		return b
