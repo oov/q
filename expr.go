@@ -170,9 +170,10 @@ func (e *logicalExpr) Len() int {
 }
 
 func newIn(l interface{}, v reflect.Value, eq bool) Expression {
-	var r inVariable
-	for i, l := 0, v.Len(); i < l; i++ {
-		r = append(r, v.Index(i).Interface())
+	ln := v.Len()
+	r := make(inVariable, ln)
+	for i := 0; i < ln; i++ {
+		r[i] = v.Index(i).Interface()
 	}
 	return &inExpr{Eq: eq, Left: interfaceToExpression(l), Right: r}
 }
