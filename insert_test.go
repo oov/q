@@ -179,15 +179,53 @@ func TestInsertOnDB(t *testing.T) {
 			defer exec(t, "drops", db, d, testData.drops)
 			exec(t, "drops", db, d, testData.drops)
 			exec(t, "creates", db, d, testData.creates)
+			if d == PostgreSQL {
+				func() {
+					tx, err := db.Begin()
+					if err != nil {
+						t.Fatalf("%s Begin Error: %v", d, err)
+					}
+					defer func() {
+						if err = tx.Rollback(); err != nil {
+							t.Fatalf("%s Rollback Error: %v", d, err)
+						}
+					}()
+					user := T("user")
+					b := Insert().SetDialect(d).Into(user).
+						Set(user.C("name"), "x").
+						Set(user.C("age"), 100).
+						Returning(user.C("id"))
+					sql, args := b.ToSQL()
+					var i int64
+					if err = tx.QueryRow(sql, args...).Scan(&i); err != nil {
+						t.Fatalf("%s Returning Error: %v\n%s", d, err, sql)
+					}
+					if i == 0 {
+						t.Errorf("%s Returning want not 0 got 0", d)
+					}
+
+					sql, args = b.Returning(user.C("name", "n")).ToSQL()
+					var n string
+					if err = tx.QueryRow(sql, args...).Scan(&i, &n); err != nil {
+						t.Fatalf("%s Returning Error: %v\n%s", d, err, sql)
+					}
+					if i == 0 {
+						t.Errorf("%s Returning want not 0 got 0", d)
+					}
+					if n == "" {
+						t.Errorf("%s Returning want not empty got empty", d)
+					}
+				}()
+			}
 			for i, test := range insertTests {
 				func() {
 					tx, err := db.Begin()
 					if err != nil {
-						t.Fatalf("%s tests[%d] %s Error: %v", d, i, test.Name, err)
+						t.Fatalf("%s Begin Error: %v", d, err)
 					}
 					defer func() {
 						if err = tx.Rollback(); err != nil {
-							t.Fatalf("%s tests[%d] %s Error: %v", d, i, test.Name, err)
+							t.Fatalf("%s Rollback Error: %v", d, err)
 						}
 					}()
 

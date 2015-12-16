@@ -19,8 +19,8 @@ func columnToString(c Column) string {
 }
 
 type columnAlias struct {
-	Column
-	Alias string
+	Column Column
+	Alias  string
 }
 
 func (c *columnAlias) String() string {
@@ -42,10 +42,14 @@ func (c *columnAlias) WriteColumn(ctx *qutil.Context, buf []byte) []byte {
 	return ctx.Dialect.Quote(buf, c.Alias)
 }
 
+func (c *columnAlias) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	return c.WriteColumn(ctx, buf)
+}
+
 func (c *columnAlias) WriteDefinition(ctx *qutil.Context, buf []byte) []byte {
 	buf = c.Column.WriteColumn(ctx, buf)
 	buf = append(buf, " AS "...)
-	return c.WriteColumn(ctx, buf)
+	return ctx.Dialect.Quote(buf, c.Alias)
 }
 
 type column string

@@ -12,6 +12,7 @@ type ZInsertBuilder struct {
 		Column
 		Expression
 	}
+	Returnings []Column
 }
 
 // Insert creates ZInsertBuilder.
@@ -87,6 +88,13 @@ func (b *ZInsertBuilder) Unset(c Column) *ZInsertBuilder {
 	return b
 }
 
+// Returning appends a column to RETURNING clause.
+// This feature is available for PostgreSQL only.
+func (b *ZInsertBuilder) Returning(columns ...Column) *ZInsertBuilder {
+	b.Returnings = append(b.Returnings, columns...)
+	return b
+}
+
 func (b *ZInsertBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	if len(b.Sets) == 0 {
 		panic("q: need at least one assignment expression to generate INSERT statements.")
@@ -109,6 +117,15 @@ func (b *ZInsertBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 		buf = s.Expression.WriteExpression(ctx, buf)
 	}
 	buf = append(buf, ')')
+
+	if len(b.Returnings) > 0 && ctx.Dialect.CanUseReturning() {
+		buf = append(buf, " RETURNING "...)
+		buf = b.Returnings[0].WriteDefinition(ctx, buf)
+		for _, c := range b.Returnings[1:] {
+			buf = append(buf, ", "...)
+			buf = c.WriteDefinition(ctx, buf)
+		}
+	}
 	return buf
 }
 

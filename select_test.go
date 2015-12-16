@@ -82,10 +82,10 @@ var selectTests = []struct {
 	},
 	{
 		Name: "Limit",
-		B:    Select().Column(C("id", "i")).From(T("post")).Limit(2).OrderBy(C("id"), true),
+		B:    Select().Column(C("id", "i")).From(T("post")).Limit(2).OrderBy(C("id", "i"), true),
 		Cols: []string{"i"},
 		Want: [][]string{{"1"}, {"2"}},
-		V:    `SELECT "id" AS "i" FROM "post" ORDER BY "id" ASC LIMIT ? [2]`,
+		V:    `SELECT "id" AS "i" FROM "post" ORDER BY "i" ASC LIMIT ? [2]`,
 	},
 	{
 		Name: "Limit + Offset",

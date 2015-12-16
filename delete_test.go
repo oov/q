@@ -134,11 +134,11 @@ func TestDeleteOnDB(t *testing.T) {
 				func() {
 					tx, err := db.Begin()
 					if err != nil {
-						t.Fatalf("%s tests[%d] %s Error: %v", d, i, test.Name, err)
+						t.Fatalf("%s Begin Error: %v", d, err)
 					}
 					defer func() {
 						if err = tx.Rollback(); err != nil {
-							t.Fatalf("%s tests[%d] %s Error: %v", d, i, test.Name, err)
+							t.Fatalf("%s Rollback Error: %v", d, err)
 						}
 					}()
 

@@ -3,6 +3,7 @@ package qutil
 type Dialect interface {
 	Placeholder() Placeholder
 	Quote(buf []byte, word string) []byte
+	CanUseReturning() bool
 	CanUseInnerJoinWithoutCondition() bool
 	CanUseLeftJoinWithoutCondition() bool
 	CharLengthName() string
@@ -42,6 +43,7 @@ type mySQL struct{}
 func (mySQL) String() string                        { return "MySQL" }
 func (mySQL) Placeholder() Placeholder              { return genericPlaceholder{} }
 func (mySQL) Quote(buf []byte, word string) []byte  { return escape(buf, '`', word) }
+func (mySQL) CanUseReturning() bool                 { return false }
 func (mySQL) CanUseInnerJoinWithoutCondition() bool { return true }
 func (mySQL) CanUseLeftJoinWithoutCondition() bool  { return false }
 func (mySQL) CharLengthName() string                { return "CHAR_LENGTH" }
@@ -51,6 +53,7 @@ type postgreSQL struct{}
 func (postgreSQL) String() string                        { return "PostgreSQL" }
 func (postgreSQL) Placeholder() Placeholder              { return &postgresPlaceholder{} }
 func (postgreSQL) Quote(buf []byte, word string) []byte  { return escape(buf, '"', word) }
+func (postgreSQL) CanUseReturning() bool                 { return true }
 func (postgreSQL) CanUseInnerJoinWithoutCondition() bool { return false }
 func (postgreSQL) CanUseLeftJoinWithoutCondition() bool  { return false }
 func (postgreSQL) CharLengthName() string                { return "CHAR_LENGTH" }
@@ -60,6 +63,7 @@ type sqlite struct{}
 func (sqlite) String() string                        { return "SQLite" }
 func (sqlite) Placeholder() Placeholder              { return genericPlaceholder{} }
 func (sqlite) Quote(buf []byte, word string) []byte  { return escape(buf, '"', word) }
+func (sqlite) CanUseReturning() bool                 { return false }
 func (sqlite) CanUseInnerJoinWithoutCondition() bool { return true }
 func (sqlite) CanUseLeftJoinWithoutCondition() bool  { return true }
 func (sqlite) CharLengthName() string                { return "LENGTH" }
@@ -67,9 +71,10 @@ func (sqlite) CharLengthName() string                { return "LENGTH" }
 type fakeDialect struct{}
 
 func (fakeDialect) String() string                        { return "FakeDialect" }
-func (fakeDialect) Quote(buf []byte, word string) []byte  { return escape(buf, '"', word) }
 func (fakeDialect) Placeholder() Placeholder              { return fakeDialect{} }
 func (fakeDialect) Next(buf []byte) []byte                { return append(buf, '?') }
+func (fakeDialect) Quote(buf []byte, word string) []byte  { return escape(buf, '"', word) }
+func (fakeDialect) CanUseReturning() bool                 { return true }
 func (fakeDialect) CanUseInnerJoinWithoutCondition() bool { return true }
 func (fakeDialect) CanUseLeftJoinWithoutCondition() bool  { return true }
 func (fakeDialect) CharLengthName() string                { return "CHAR_LENGTH" }

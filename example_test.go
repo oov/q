@@ -386,3 +386,16 @@ func ExampleInsert() {
 	// Output:
 	// INSERT INTO "user"("name") VALUES (?) [hackme]
 }
+
+// This is an example of how to use Insert.
+func ExampleZInsertBuilder_Returning() {
+	user := q.T("user")
+	ins := q.Insert().Into(user).
+		Set(user.C("name"), "hackme").
+		Returning(user.C("id"), user.C("name", "n"))
+	fmt.Println("PostgreSQL", ins.SetDialect(q.PostgreSQL))
+	fmt.Println("MySQL", ins.SetDialect(q.MySQL))
+	// Output:
+	// PostgreSQL INSERT INTO "user"("name") VALUES ($1) RETURNING "id", "name" AS "n" [hackme]
+	// MySQL INSERT INTO `user`(`name`) VALUES (?) [hackme]
+}
