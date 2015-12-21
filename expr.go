@@ -1,3 +1,4 @@
+//go:generate go run genexpr.go
 package q
 
 import (
@@ -67,126 +68,16 @@ func (e nullExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	return append(buf, "NULL"...)
 }
 
-type simpleExpr struct {
-	Op    string
-	Left  interface{}
-	Right interface{}
-}
-
-func (e *simpleExpr) String() string               { return expressionToString(e) }
-func (e *simpleExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
-func (e *simpleExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	buf = writeIntf(e.Left, ctx, buf)
-	buf = append(buf, e.Op...)
-	buf = writeIntf(e.Right, ctx, buf)
-	return buf
-}
-
-type eqExpr struct {
-	Eq    bool
-	Left  interface{}
-	Right interface{}
-}
-
-func (e *eqExpr) String() string               { return expressionToString(e) }
-func (e *eqExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
-func (e *eqExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	lv, rv := e.Left, e.Right
-	if lv == nil {
-		lv, rv = rv, lv
-	}
-	if rv == nil {
-		buf = writeIntf(lv, ctx, buf)
-		if e.Eq {
-			return append(buf, " IS NULL"...)
-		}
-		return append(buf, " IS NOT NULL"...)
-	}
-
-	buf = writeIntf(lv, ctx, buf)
-	if e.Eq {
-		buf = append(buf, " = "...)
-	} else {
-		buf = append(buf, " != "...)
-	}
-	buf = writeIntf(rv, ctx, buf)
-	return buf
-}
-
-type inExpr struct {
-	Eq    bool
-	Left  interface{}
-	Right inVariable
-}
-
-func (e *inExpr) String() string               { return expressionToString(e) }
-func (e *inExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
-func (e *inExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	if len(e.Right) == 0 {
-		// x IN () is invaild syntax.
-		// But at the same time, a result is a obvious expression.
-		// So replace the alternative valid expression which is the same result.
-		if e.Eq {
-			return append(buf, "'IN' = '()'"...)
-		}
-		return append(buf, "'IN' != '()'"...)
-	}
-
-	buf = writeIntf(e.Left, ctx, buf)
-	if e.Eq {
-		buf = append(buf, " IN "...)
-	} else {
-		buf = append(buf, " NOT IN "...)
-	}
-	buf = e.Right.WriteExpression(ctx, buf)
-	return buf
-}
-
-type logicalExpr struct {
-	Exprs []Expression
-	Op    string
-}
-
-func (e *logicalExpr) String() string               { return expressionToString(e) }
-func (e *logicalExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
-func (e *logicalExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	switch len(e.Exprs) {
-	case 0:
-		buf = append(buf, "('empty' = '"...)
-		buf = append(buf, e.Op...)
-		buf = append(buf, "')"...)
-		return buf
-	case 1:
-		return e.Exprs[0].WriteExpression(ctx, buf)
-	}
-	buf = append(buf, '(')
-	buf = e.Exprs[0].WriteExpression(ctx, buf)
-	buf = append(buf, ')')
-	for _, cd := range e.Exprs[1:] {
-		buf = append(buf, e.Op...)
-		buf = append(buf, '(')
-		buf = cd.WriteExpression(ctx, buf)
-		buf = append(buf, ')')
-	}
-	return buf
-}
-
-func (e *logicalExpr) Add(exprs ...Expression) Expressions {
-	e.Exprs = append(e.Exprs, exprs...)
-	return e
-}
-
-func (e *logicalExpr) Len() int {
-	return len(e.Exprs)
-}
-
 func newIn(l interface{}, v reflect.Value, eq bool) Expression {
 	ln := v.Len()
 	r := make(inVariable, ln)
 	for i := 0; i < ln; i++ {
 		r[i] = v.Index(i).Interface()
 	}
-	return &inExpr{Eq: eq, Left: l, Right: r}
+	if eq {
+		return &inExpr{Left: l, Right: r}
+	}
+	return &notInExpr{Left: l, Right: r}
 }
 
 // Eq creates Expression such as "l = r".
@@ -198,11 +89,7 @@ func Eq(l, r interface{}) Expression {
 			return newIn(l, rv, true)
 		}
 	}
-	return &eqExpr{
-		Eq:    true,
-		Left:  l,
-		Right: r,
-	}
+	return &eqExpr{Left: l, Right: r}
 }
 
 // Neq creates Expression such as "l != r".
@@ -214,11 +101,7 @@ func Neq(l, r interface{}) Expression {
 			return newIn(l, rv, false)
 		}
 	}
-	return &eqExpr{
-		Eq:    false,
-		Left:  l,
-		Right: r,
-	}
+	return &neqExpr{Left: l, Right: r}
 }
 
 // In creates Expression such as "l IN r".
@@ -228,11 +111,7 @@ func In(l, r interface{}) Expression {
 			return newIn(l, rv, true)
 		}
 	}
-	return &simpleExpr{
-		Op:    " IN ",
-		Left:  l,
-		Right: r,
-	}
+	return &simpleInExpr{Left: l, Right: r}
 }
 
 // NotIn creates Expression such as "l NOT IN r".
@@ -242,48 +121,20 @@ func NotIn(l, r interface{}) Expression {
 			return newIn(l, rv, false)
 		}
 	}
-	return &simpleExpr{
-		Op:    " NOT IN ",
-		Left:  l,
-		Right: r,
-	}
+	return &simpleNotInExpr{Left: l, Right: r}
 }
 
 // Gt creates Expression such as "l > r".
-func Gt(l, r interface{}) Expression {
-	return &simpleExpr{
-		Op:    " > ",
-		Left:  l,
-		Right: r,
-	}
-}
+func Gt(l, r interface{}) Expression { return &gtExpr{Left: l, Right: r} }
 
 // Gte creates Expression such as "l >= r".
-func Gte(l, r interface{}) Expression {
-	return &simpleExpr{
-		Op:    " >= ",
-		Left:  l,
-		Right: r,
-	}
-}
+func Gte(l, r interface{}) Expression { return &gteExpr{Left: l, Right: r} }
 
 // Lt creates Expression such as "l < r".
-func Lt(l, r interface{}) Expression {
-	return &simpleExpr{
-		Op:    " < ",
-		Left:  l,
-		Right: r,
-	}
-}
+func Lt(l, r interface{}) Expression { return &ltExpr{Left: l, Right: r} }
 
 // Lte creates Expression such as "l <= r".
-func Lte(l, r interface{}) Expression {
-	return &simpleExpr{
-		Op:    " <= ",
-		Left:  l,
-		Right: r,
-	}
-}
+func Lte(l, r interface{}) Expression { return &lteExpr{Left: l, Right: r} }
 
 // And creates Expression such as "(exprs[0])AND(exprs[1])AND(exprs[2])".
 //
@@ -293,7 +144,7 @@ func And(exprs ...Expression) Expressions {
 	if len(exprs) == 0 {
 		exprs = make([]Expression, 0, 4)
 	}
-	return &logicalExpr{Op: "AND", Exprs: exprs}
+	return &andExpr{Exprs: exprs}
 }
 
 // Or creates Expression such as "(exprs[0])OR(exprs[1])OR(exprs[2])".
@@ -304,7 +155,7 @@ func Or(exprs ...Expression) Expressions {
 	if len(exprs) == 0 {
 		exprs = make([]Expression, 0, 4)
 	}
-	return &logicalExpr{Op: "OR", Exprs: exprs}
+	return &orExpr{Exprs: exprs}
 }
 
 // Unsafe creates any custom expressions.
