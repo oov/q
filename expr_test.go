@@ -333,31 +333,41 @@ func TestVariableStringer(t *testing.T) {
 }
 
 func BenchmarkSimpleExpr(b *testing.B) {
+	c := C("test")
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Gt(C("test"), 1)
+		Gt(c, 1)
 	}
 }
 
 func BenchmarkEqExpr(b *testing.B) {
+	c := C("test")
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Eq(C("test"), 1)
+		Eq(c, 1)
 	}
 }
 
 func BenchmarkInExpr(b *testing.B) {
+	c, s := C("test"), []int{1, 2, 3}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		In(C("test"), []int{1, 2, 3})
+		In(c, s)
 	}
 }
 
 func BenchmarkLogicalExpr(b *testing.B) {
+	eq := Eq(C("test"), []int{1, 2, 3})
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		In(C("test"), []int{1, 2, 3})
+		And(eq, eq, eq)
 	}
 }
 
 func BenchmarkInV(b *testing.B) {
+	s := []int{1, 2, 3}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		InV([]int{1, 2, 3})
+		InV(s)
 	}
 }
