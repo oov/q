@@ -1,4 +1,5 @@
 //go:generate go run genexpr.go
+
 package q
 
 import (
