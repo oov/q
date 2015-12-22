@@ -1,5 +1,7 @@
 package qutil
 
+type IntervalUnit int
+
 type Dialect interface {
 	Placeholder() Placeholder
 	Quote(buf []byte, word string) []byte
@@ -7,6 +9,7 @@ type Dialect interface {
 	CanUseInnerJoinWithoutCondition() bool
 	CanUseLeftJoinWithoutCondition() bool
 	CharLengthName() string
+	AddInterval(ctx *Context, buf []byte, l interface{}, intervals ...Interval) []byte
 }
 
 type Placeholder interface {

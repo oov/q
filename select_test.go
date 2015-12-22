@@ -42,7 +42,14 @@ var selectTests = []struct {
 			return Select().From(post.InnerJoin(
 				user,
 				Eq(post.C("user_id"), user.C("id")),
-			))
+			)).Column(
+				post.C("id"),
+				post.C("user_id"),
+				post.C("title"),
+				user.C("id"),
+				user.C("name"),
+				user.C("age"),
+			)
 		}(),
 		Cols: []string{"id", "user_id", "title", "id", "name", "age"},
 		Want: [][]string{

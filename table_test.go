@@ -11,6 +11,7 @@ import (
 var tableTests = []struct {
 	Name string
 	T    Table
+	Col  func(sel *ZSelectBuilder, t Table) *ZSelectBuilder
 	Want []string
 	V    string
 	Skip map[qutil.Dialect]string
@@ -18,12 +19,19 @@ var tableTests = []struct {
 	{
 		Name: "T(name)",
 		T:    T("user"),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"))
+		},
 		Want: []string{"1", "Shipon", "15"},
 		V:    `"user" []`,
 	},
 	{
 		Name: "T(name).InnerJoin(T(name))",
 		T:    T("user").InnerJoin(T("post")),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" INNER JOIN "post" []`,
 		Skip: map[qutil.Dialect]string{
@@ -34,6 +42,10 @@ var tableTests = []struct {
 	{
 		Name: "T(name).InnerJoin(T(name, alias))",
 		T:    T("user").InnerJoin(T("post", "p")),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" INNER JOIN "post" AS "p" []`,
 		Skip: map[qutil.Dialect]string{
@@ -47,6 +59,10 @@ var tableTests = []struct {
 			user := T("user")
 			return user.InnerJoin(T("post"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" INNER JOIN "post" ON "user"."id" = "user_id" []`,
 	},
@@ -56,12 +72,20 @@ var tableTests = []struct {
 			user := T("user")
 			return user.InnerJoin(T("post", "p"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" INNER JOIN "post" AS "p" ON "user"."id" = "user_id" []`,
 	},
 	{
 		Name: "T(name).LeftJoin(T(name))",
 		T:    T("user").LeftJoin(T("post")),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" LEFT JOIN "post" []`,
 		Skip: map[qutil.Dialect]string{
@@ -73,6 +97,10 @@ var tableTests = []struct {
 	{
 		Name: "T(name).LeftJoin(T(name, alias))",
 		T:    T("user").LeftJoin(T("post", "p")),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" LEFT JOIN "post" AS "p" []`,
 		Skip: map[qutil.Dialect]string{
@@ -87,6 +115,10 @@ var tableTests = []struct {
 			user := T("user")
 			return user.LeftJoin(T("post"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" LEFT JOIN "post" ON "user"."id" = "user_id" []`,
 	},
@@ -96,24 +128,39 @@ var tableTests = []struct {
 			user := T("user")
 			return user.LeftJoin(T("post", "p"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" LEFT JOIN "post" AS "p" ON "user"."id" = "user_id" []`,
 	},
 	{
 		Name: "T(name).CrossJoin(T(name))",
 		T:    T("user").CrossJoin(T("post")),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" CROSS JOIN "post" []`,
 	},
 	{
 		Name: "T(name).CrossJoin(T(name, alias))",
 		T:    T("user").CrossJoin(T("post", "p")),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" CROSS JOIN "post" AS "p" []`,
 	},
 	{
 		Name: "T(name, alias)",
 		T:    T("user", "u"),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"))
+		},
 		Want: []string{"1", "Shipon", "15"},
 		V:    `"user" AS "u" []`,
 	},
@@ -123,6 +170,10 @@ var tableTests = []struct {
 			user := T("user", "u")
 			return user.InnerJoin(T("post"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" AS "u" INNER JOIN "post" ON "u"."id" = "user_id" []`,
 	},
@@ -132,6 +183,10 @@ var tableTests = []struct {
 			user := T("user", "u")
 			return user.LeftJoin(T("post"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" AS "u" LEFT JOIN "post" ON "u"."id" = "user_id" []`,
 	},
@@ -141,12 +196,19 @@ var tableTests = []struct {
 			user := T("user", "u")
 			return user.CrossJoin(T("post"))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `"user" AS "u" CROSS JOIN "post" []`,
 	},
 	{
 		Name: "*SelectBuilder.T(alias)",
 		T:    Select().From(T("user")).T("u"),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"))
+		},
 		Want: []string{"1", "Shipon", "15"},
 		V:    `(SELECT * FROM "user") AS "u" []`,
 	},
@@ -156,6 +218,10 @@ var tableTests = []struct {
 			user := Select().From(T("user")).T("u")
 			return user.InnerJoin(T("post"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `(SELECT * FROM "user") AS "u" INNER JOIN "post" ON "u"."id" = "user_id" []`,
 	},
@@ -165,6 +231,10 @@ var tableTests = []struct {
 			user := Select().From(T("user")).T("u")
 			return user.LeftJoin(T("post"), Eq(user.C("id"), C("user_id")))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `(SELECT * FROM "user") AS "u" LEFT JOIN "post" ON "u"."id" = "user_id" []`,
 	},
@@ -174,6 +244,10 @@ var tableTests = []struct {
 			user := Select().From(T("user")).T("u")
 			return user.CrossJoin(T("post"))
 		}(),
+		Col: func(sel *ZSelectBuilder, t Table) *ZSelectBuilder {
+			_, t2, _ := t.JoinIndex(0)
+			return sel.Column(t.C("id"), t.C("name"), t.C("age"), t2.C("id"), t2.C("user_id"), t2.C("title"))
+		},
 		Want: []string{"1", "Shipon", "15", "1", "1", "昨日見た夢の内容が凄い"},
 		V:    `(SELECT * FROM "user") AS "u" CROSS JOIN "post" []`,
 	},
@@ -211,7 +285,7 @@ func TestTableOnDB(t *testing.T) {
 				for i := range r {
 					rp[i] = &r[i]
 				}
-				sql, args := Select().From(test.T).Limit(1).SetDialect(d).ToSQL()
+				sql, args := test.Col(Select().From(test.T).Limit(1).SetDialect(d), test.T).ToSQL()
 				if err := db.QueryRow(sql, args...).Scan(rp...); err != nil {
 					if msg, skip := test.Skip[d]; skip && err.Error() == msg {
 						continue
