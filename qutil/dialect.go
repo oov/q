@@ -9,6 +9,7 @@ type Dialect interface {
 	CanUseInnerJoinWithoutCondition() bool
 	CanUseLeftJoinWithoutCondition() bool
 	CharLengthName() string
+	Now() string
 	AddInterval(ctx *Context, buf []byte, l interface{}, intervals ...Interval) []byte
 }
 
@@ -50,6 +51,7 @@ func (mySQL) CanUseReturning() bool                 { return false }
 func (mySQL) CanUseInnerJoinWithoutCondition() bool { return true }
 func (mySQL) CanUseLeftJoinWithoutCondition() bool  { return false }
 func (mySQL) CharLengthName() string                { return "CHAR_LENGTH" }
+func (mySQL) Now() string                           { return "CURRENT_TIMESTAMP" }
 
 type postgreSQL struct{}
 
@@ -60,6 +62,7 @@ func (postgreSQL) CanUseReturning() bool                 { return true }
 func (postgreSQL) CanUseInnerJoinWithoutCondition() bool { return false }
 func (postgreSQL) CanUseLeftJoinWithoutCondition() bool  { return false }
 func (postgreSQL) CharLengthName() string                { return "CHAR_LENGTH" }
+func (postgreSQL) Now() string                           { return "CURRENT_TIMESTAMP" }
 
 type sqlite struct{}
 
@@ -70,6 +73,7 @@ func (sqlite) CanUseReturning() bool                 { return false }
 func (sqlite) CanUseInnerJoinWithoutCondition() bool { return true }
 func (sqlite) CanUseLeftJoinWithoutCondition() bool  { return true }
 func (sqlite) CharLengthName() string                { return "LENGTH" }
+func (sqlite) Now() string                           { return `DATETIME('now', 'localtime')` }
 
 type fakeDialect struct{}
 
@@ -81,6 +85,7 @@ func (fakeDialect) CanUseReturning() bool                 { return true }
 func (fakeDialect) CanUseInnerJoinWithoutCondition() bool { return true }
 func (fakeDialect) CanUseLeftJoinWithoutCondition() bool  { return true }
 func (fakeDialect) CharLengthName() string                { return "CHAR_LENGTH" }
+func (fakeDialect) Now() string                           { return "CURRENT_TIMESTAMP" }
 
 type genericPlaceholder struct{}
 
