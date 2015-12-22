@@ -7,7 +7,7 @@ type Function Expression
 
 type function struct {
 	Name string
-	V    Expression
+	V    interface{}
 }
 
 func (f *function) String() string               { return expressionToString(f) }
@@ -15,14 +15,14 @@ func (f *function) C(aliasName ...string) Column { return columnExpr(f, aliasNam
 func (f *function) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, f.Name...)
 	buf = append(buf, '(')
-	buf = f.V.WriteExpression(ctx, buf)
+	buf = writeIntf(f.V, ctx, buf)
 	buf = append(buf, ')')
 	return buf
 }
 
 // Count creates Function such as "COUNT(v)".
 func Count(v interface{}) Function {
-	return &function{"COUNT", interfaceToExpression(v)}
+	return &function{"COUNT", v}
 }
 
 // CountAll creates Function "COUNT(*)".
@@ -32,26 +32,26 @@ func CountAll() Function {
 
 // Avg creates Function such as "AVG(v)".
 func Avg(v interface{}) Function {
-	return &function{"AVG", interfaceToExpression(v)}
+	return &function{"AVG", v}
 }
 
 // Max creates Function such as "MAX(v)".
 func Max(v interface{}) Function {
-	return &function{"MAX", interfaceToExpression(v)}
+	return &function{"MAX", v}
 }
 
 // Min creates Function such as "MIN(v)".
 func Min(v interface{}) Function {
-	return &function{"MIN", interfaceToExpression(v)}
+	return &function{"MIN", v}
 }
 
 // Sum creates Function such as "SUM(v)".
 func Sum(v interface{}) Function {
-	return &function{"SUM", interfaceToExpression(v)}
+	return &function{"SUM", v}
 }
 
 type charLengthFunc struct {
-	V Expression
+	V interface{}
 }
 
 func (f *charLengthFunc) String() string               { return expressionToString(f) }
@@ -59,12 +59,12 @@ func (f *charLengthFunc) C(aliasName ...string) Column { return columnExpr(f, al
 func (f *charLengthFunc) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	buf = append(buf, ctx.Dialect.CharLengthName()...)
 	buf = append(buf, '(')
-	buf = f.V.WriteExpression(ctx, buf)
+	buf = writeIntf(f.V, ctx, buf)
 	buf = append(buf, ')')
 	return buf
 }
 
 // CharLength creates Function such as "CHAR_LENGTH(v)".
 func CharLength(v interface{}) Function {
-	return &charLengthFunc{interfaceToExpression(v)}
+	return &charLengthFunc{v}
 }
