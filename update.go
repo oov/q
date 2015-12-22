@@ -28,7 +28,7 @@ func Update(table Table, beginning ...string) *ZUpdateBuilder {
 	return &ZUpdateBuilder{
 		Beginning: b,
 		Table:     table,
-		Wheres:    And(),
+		Wheres:    &andExpr{Exprs: make([]Expression, 0, 4)},
 	}
 }
 

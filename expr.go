@@ -69,16 +69,13 @@ func (e nullExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	return append(buf, "NULL"...)
 }
 
-func newIn(l interface{}, v reflect.Value, eq bool) Expression {
+func valueToInV(v reflect.Value) inVariable {
 	ln := v.Len()
 	r := make(inVariable, ln)
 	for i := 0; i < ln; i++ {
 		r[i] = v.Index(i).Interface()
 	}
-	if eq {
-		return &inExpr{Left: l, Right: r}
-	}
-	return &notInExpr{Left: l, Right: r}
+	return r
 }
 
 // Eq creates Expression such as "l = r".
@@ -87,7 +84,7 @@ func newIn(l interface{}, v reflect.Value, eq bool) Expression {
 func Eq(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
 		if _, ok := r.(Expression); !ok {
-			return newIn(l, rv, true)
+			return &inExpr{Left: l, Right: valueToInV(rv)}
 		}
 	}
 	return &eqExpr{Left: l, Right: r}
@@ -99,7 +96,7 @@ func Eq(l, r interface{}) Expression {
 func Neq(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
 		if _, ok := r.(Expression); !ok {
-			return newIn(l, rv, false)
+			return &notInExpr{Left: l, Right: valueToInV(rv)}
 		}
 	}
 	return &neqExpr{Left: l, Right: r}
@@ -109,7 +106,7 @@ func Neq(l, r interface{}) Expression {
 func In(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
 		if _, ok := r.(Expression); !ok {
-			return newIn(l, rv, true)
+			return &inExpr{Left: l, Right: valueToInV(rv)}
 		}
 	}
 	return &simpleInExpr{Left: l, Right: r}
@@ -119,7 +116,7 @@ func In(l, r interface{}) Expression {
 func NotIn(l, r interface{}) Expression {
 	if rv := reflect.ValueOf(r); rv.Kind() == reflect.Slice {
 		if _, ok := r.(Expression); !ok {
-			return newIn(l, rv, false)
+			return &notInExpr{Left: l, Right: valueToInV(rv)}
 		}
 	}
 	return &simpleNotInExpr{Left: l, Right: r}
@@ -142,9 +139,6 @@ func Lte(l, r interface{}) Expression { return &lteExpr{Left: l, Right: r} }
 // If you output expression which isn't adding Expression at all,
 // it generates "('empty' = 'AND')".
 func And(exprs ...Expression) Expressions {
-	if len(exprs) == 0 {
-		exprs = make([]Expression, 0, 4)
-	}
 	return &andExpr{Exprs: exprs}
 }
 
@@ -153,9 +147,6 @@ func And(exprs ...Expression) Expressions {
 // If you output expression which isn't adding Expression at all,
 // it generates "('empty' = 'OR')".
 func Or(exprs ...Expression) Expressions {
-	if len(exprs) == 0 {
-		exprs = make([]Expression, 0, 4)
-	}
 	return &orExpr{Exprs: exprs}
 }
 

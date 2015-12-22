@@ -32,8 +32,8 @@ func Select(beginning ...string) *ZSelectBuilder {
 	}
 	return &ZSelectBuilder{
 		Beginning: b,
-		Wheres:    And(),
-		Havings:   And(),
+		Wheres:    &andExpr{Exprs: make([]Expression, 0, 4)},
+		Havings:   &andExpr{Exprs: make([]Expression, 0, 4)},
 	}
 }
 

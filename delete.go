@@ -17,7 +17,7 @@ func Delete(table ...Table) *ZDeleteBuilder {
 	}
 	return &ZDeleteBuilder{
 		Table:  t,
-		Wheres: And(),
+		Wheres: &andExpr{Exprs: make([]Expression, 0, 4)},
 	}
 }
 
