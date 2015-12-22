@@ -58,7 +58,7 @@ var selectTests = []struct {
 			{"3", "1", "嘘じゃないんです", "1", "Shipon", "15"},
 			{"4", "2", "最近仕事が辛い", "2", "Mr.TireMan", "44"},
 		},
-		V: `SELECT * FROM "post" AS "p" INNER JOIN "user" AS "u" ON "p"."user_id" = "u"."id" []`,
+		V: `SELECT "p"."id", "p"."user_id", "p"."title", "u"."id", "u"."name", "u"."age" FROM "post" AS "p" INNER JOIN "user" AS "u" ON "p"."user_id" = "u"."id" []`,
 	},
 	{
 		Name: "Multiple Join",
