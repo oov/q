@@ -46,7 +46,7 @@ func mySQLTest(f func(*sql.DB, qutil.Dialect)) error {
 		return err
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=true",
 		User, Password, c.Mapped["3306/tcp"], DBName)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -109,7 +109,7 @@ ping:
 }
 
 func sqliteTest(f func(*sql.DB, qutil.Dialect)) error {
-	db, err := sql.Open("sqlite3", ":memory:?_loc=auto")
+	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		return err
 	}

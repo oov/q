@@ -69,15 +69,7 @@ func CharLength(v interface{}) Function {
 	return &charLengthFunc{v}
 }
 
-type nowFunction struct{}
-
-func (f *nowFunction) String() string               { return expressionToString(f) }
-func (f *nowFunction) C(aliasName ...string) Column { return columnExpr(f, aliasName...) }
-func (f *nowFunction) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	return append(buf, ctx.Dialect.Now()...)
-}
-
-// Now creates Function such as "CURRENT_TIMESTAMP".
+// Now creates Function "CURRENT_TIMESTAMP".
 func Now() Function {
-	return &nowFunction{}
+	return Unsafe(`CURRENT_TIMESTAMP`)
 }

@@ -3,6 +3,7 @@ package q
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/oov/q/qutil"
 )
@@ -100,6 +101,40 @@ func TestIntervalOnDB(t *testing.T) {
 				if r != 1 {
 					t.Errorf("%s test[%d] %s want 1 got %v", d, i, test.Name, r)
 				}
+			}
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestNowOnDB(t *testing.T) {
+	for _, testData := range testModel {
+		err := testData.tester(func(db *sql.DB, d qutil.Dialect) {
+			defer exec(t, "drops", db, d, testData.drops)
+			exec(t, "drops", db, d, testData.drops)
+			exec(t, "creates", db, d, testData.creates)
+			exec(t, "inserts", db, d, testData.inserts)
+			post := T("post")
+			sql, args := Insert().SetDialect(d).Into(post).
+				Set(post.C("id"), 100).
+				Set(post.C("user_id"), 1).
+				Set(post.C("title"), "test").
+				Set(post.C("at"), Now()).
+				ToSQL()
+			if _, err := db.Exec(sql, args...); err != nil {
+				t.Fatalf("%s Error: %v\n%s", d, err, sql)
+			}
+
+			want := time.Now().In(time.UTC)
+			var r time.Time
+			sql, args = Select().SetDialect(d).Column(C("at")).From(T("post")).Where(Eq(C("id"), 100)).ToSQL()
+			if err := db.QueryRow(sql, args...).Scan(&r); err != nil {
+				t.Fatalf("%s Error: %v\n%s", d, err, sql)
+			}
+			if r.Before(want.Add(-5*time.Minute)) || r.After(want.Add(5*time.Minute)) {
+				t.Errorf("%s want %s got %s", d, want.Format("2006-01-02 15:04:05"), r.Format("2006-01-02 15:04:05"))
 			}
 		})
 		if err != nil {
