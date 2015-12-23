@@ -62,9 +62,9 @@ func (f *addIntervalFunc) WriteExpression(ctx *qutil.Context, buf []byte) []byte
 
 // AddInterval creates Function such as "v + INTERVAL intervals[n] YEAR + ...".
 func AddInterval(v interface{}, intervals ...Interval) Function {
-	r := &addIntervalFunc{V: interfaceToExpression(v), Intervals: make([]qutil.Interval, len(intervals))}
+	ivs := make([]qutil.Interval, len(intervals))
 	for i, v := range intervals {
-		r.Intervals[i] = v
+		ivs[i] = v
 	}
-	return r
+	return &addIntervalFunc{V: v, Intervals: ivs}
 }
