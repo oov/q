@@ -47,11 +47,11 @@ func main() {
 		},
 	}
 
-	b := bytes.NewBufferString("")
 	t, err := template.New("").Parse(tpl)
 	if err != nil {
 		log.Fatal(err)
 	}
+	b := bytes.NewBufferString("")
 	if err = t.Execute(b, vars); err != nil {
 		log.Fatal(err)
 	}
