@@ -258,16 +258,16 @@ var expressionTests = []struct {
 }
 
 func TestNullC(t *testing.T) {
-	want := `NULL AS "N"`
+	want := `NULL AS "n" []`
 	if r := fmt.Sprint(nullExpr{}.C("n")); want != r {
-		t.Errorf("want %s got %s", want, r)
+		t.Errorf("want %q got %q", want, r)
 	}
 }
 
 func TestInVEmptySlice(t *testing.T) {
-	want := "()"
+	want := "() []"
 	if r := fmt.Sprint(InV([]int{})); want != r {
-		t.Errorf("want %s got %s", want, r)
+		t.Errorf("want %q got %q", want, r)
 	}
 }
 
