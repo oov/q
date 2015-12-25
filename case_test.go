@@ -51,6 +51,12 @@ var caseTests = []struct {
 		V:    `CASE "id" WHEN ? THEN ? ELSE ? END [0 1 2]`,
 	},
 	{
+		Name: "simple case unmatched else nil",
+		B:    Case(C("id")).When(0, 1).Else(nil),
+		Want: sql.NullInt64{0, false},
+		V:    `CASE "id" WHEN ? THEN ? ELSE NULL END [0 1]`,
+	},
+	{
 		Name: "empty searched case",
 		B:    Case(),
 		Want: sql.NullInt64{0, false},
@@ -79,6 +85,12 @@ var caseTests = []struct {
 		B:    Case().When(Eq(C("id"), 0), 1).Else(2),
 		Want: sql.NullInt64{2, true},
 		V:    `CASE WHEN "id" = ? THEN ? ELSE ? END [0 1 2]`,
+	},
+	{
+		Name: "searched case unmatched else nil",
+		B:    Case().When(Eq(C("id"), 0), 1).Else(nil),
+		Want: sql.NullInt64{0, false},
+		V:    `CASE WHEN "id" = ? THEN ? ELSE NULL END [0 1]`,
 	},
 	{
 		Name: "searched case matched",
