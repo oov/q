@@ -257,13 +257,11 @@ var expressionTests = []struct {
 	},
 }
 
-func TestNullCUnimplementedPanic(t *testing.T) {
-	defer func() {
-		if e := recover(); e == nil {
-			t.Error("want Panic got Nothing")
-		}
-	}()
-	nullExpr{}.C()
+func TestNullC(t *testing.T) {
+	want := `NULL AS "N"`
+	if r := fmt.Sprint(nullExpr{}.C("n")); want != r {
+		t.Errorf("want %s got %s", want, r)
+	}
 }
 
 func TestInVEmptySlice(t *testing.T) {
