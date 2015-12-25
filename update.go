@@ -14,7 +14,7 @@ type ZUpdateBuilder struct {
 		Column
 		Expression
 	}
-	Wheres Expressions
+	Wheres ZAndExpr
 }
 
 // Update creates ZUpdateBuilder.
@@ -28,7 +28,7 @@ func Update(table Table, beginning ...string) *ZUpdateBuilder {
 	return &ZUpdateBuilder{
 		Beginning: b,
 		Table:     table,
-		Wheres:    &andExpr{Exprs: make([]Expression, 0, 4)},
+		Wheres:    ZAndExpr(make([]Expression, 0, 4)),
 	}
 }
 
@@ -89,7 +89,7 @@ func (b *ZUpdateBuilder) Unset(c Column) *ZUpdateBuilder {
 // Where adds condition to the WHERE clause.
 // More than one condition is connected by AND.
 func (b *ZUpdateBuilder) Where(conds ...Expression) *ZUpdateBuilder {
-	b.Wheres.Add(conds...)
+	b.Wheres = append(b.Wheres, conds...)
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *ZUpdateBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 		buf = s.Expression.WriteExpression(ctx, buf)
 	}
 
-	if b.Wheres.Len() > 0 {
+	if len(b.Wheres) > 0 {
 		buf = append(buf, " WHERE "...)
 		buf = b.Wheres.WriteExpression(ctx, buf)
 	}

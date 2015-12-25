@@ -52,16 +52,6 @@ func columnExpr(e Expression, aliasName ...string) Column {
 	return &columnAlias{Column: r, Alias: aliasName[0]}
 }
 
-// Expressions represents combination of an expression.
-// It can use as Expression because Expressions implements Expression interface.
-type Expressions interface {
-	Expression
-	// Add adds conds and returns myself.
-	Add(conds ...Expression) Expressions
-	// Len returns number of expressions.
-	Len() int
-}
-
 type nullExpr struct{}
 
 func (e nullExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
@@ -134,12 +124,15 @@ func Lt(l, r interface{}) Expression { return &ltExpr{Left: l, Right: r} }
 // Lte creates Expression such as "l <= r".
 func Lte(l, r interface{}) Expression { return &lteExpr{Left: l, Right: r} }
 
+// Expressions represents combination of an expression.
+type Expressions Expression
+
 // And creates Expression such as "(exprs[0])AND(exprs[1])AND(exprs[2])".
 //
 // If you output expression which isn't adding Expression at all,
 // it generates "('empty' = 'AND')".
 func And(exprs ...Expression) Expressions {
-	return &andExpr{Exprs: exprs}
+	return ZAndExpr(exprs)
 }
 
 // Or creates Expression such as "(exprs[0])OR(exprs[1])OR(exprs[2])".
@@ -147,7 +140,7 @@ func And(exprs ...Expression) Expressions {
 // If you output expression which isn't adding Expression at all,
 // it generates "('empty' = 'OR')".
 func Or(exprs ...Expression) Expressions {
-	return &orExpr{Exprs: exprs}
+	return ZOrExpr(exprs)
 }
 
 // Unsafe creates any custom expressions.

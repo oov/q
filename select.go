@@ -10,9 +10,9 @@ type ZSelectBuilder struct {
 	Beginning string
 	Columns   []Column
 	Tables    []Table
-	Wheres    Expressions
+	Wheres    ZAndExpr
 	Groups    []Expression
-	Havings   Expressions
+	Havings   ZAndExpr
 	Orders    []struct {
 		Expression
 		Ascending bool
@@ -32,8 +32,8 @@ func Select(beginning ...string) *ZSelectBuilder {
 	}
 	return &ZSelectBuilder{
 		Beginning: b,
-		Wheres:    &andExpr{Exprs: make([]Expression, 0, 4)},
-		Havings:   &andExpr{Exprs: make([]Expression, 0, 4)},
+		Wheres:    ZAndExpr(make([]Expression, 0, 4)),
+		Havings:   ZAndExpr(make([]Expression, 0, 4)),
 	}
 }
 
@@ -58,7 +58,7 @@ func (b *ZSelectBuilder) From(tables ...Table) *ZSelectBuilder {
 // Where adds condition to the WHERE clause.
 // More than one condition is connected by AND.
 func (b *ZSelectBuilder) Where(conds ...Expression) *ZSelectBuilder {
-	b.Wheres.Add(conds...)
+	b.Wheres = append(b.Wheres, conds...)
 	return b
 }
 
@@ -83,7 +83,7 @@ func (b *ZSelectBuilder) GroupBy(e ...Expression) *ZSelectBuilder {
 // Having adds HAVING condition to the GROUP BY clause.
 // More than one condition is connected by AND.
 func (b *ZSelectBuilder) Having(conds ...Expression) *ZSelectBuilder {
-	b.Havings.Add(conds...)
+	b.Havings = append(b.Havings, conds...)
 	return b
 }
 
@@ -121,7 +121,7 @@ func (b *ZSelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 		}
 	}
 
-	if b.Wheres.Len() > 0 {
+	if len(b.Wheres) > 0 {
 		buf = append(buf, " WHERE "...)
 		buf = b.Wheres.WriteExpression(ctx, buf)
 	}
@@ -135,7 +135,7 @@ func (b *ZSelectBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 		}
 	}
 
-	if b.Havings.Len() > 0 {
+	if len(b.Havings) > 0 {
 		buf = append(buf, " HAVING "...)
 		buf = b.Havings.WriteExpression(ctx, buf)
 	}

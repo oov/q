@@ -42,8 +42,8 @@ func main() {
 			{Name: "notIn", Bool: false},
 		},
 		LogicalExpr: []nameOp{
-			{Name: "and", Op: "AND"},
-			{Name: "or", Op: "OR"},
+			{Name: "And", Op: "AND"},
+			{Name: "Or", Op: "OR"},
 		},
 	}
 
@@ -136,38 +136,31 @@ func (e *{{.Name}}Expr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 {{end}}
 
 {{range .LogicalExpr}}
-type {{.Name}}Expr struct {
-	Exprs []Expression
-}
+// Z{{.Name}}Expr represents {{.Op}} Expression.
+type Z{{.Name}}Expr []Expression
 
-func (e *{{.Name}}Expr) String() string               { return expressionToString(e) }
-func (e *{{.Name}}Expr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
-func (e *{{.Name}}Expr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	switch len(e.Exprs) {
+// String implements fmt.Stringer interface method.
+func (e Z{{.Name}}Expr) String() string               { return expressionToString(e) }
+// C implements Expression interface method.
+func (e Z{{.Name}}Expr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
+// WriteExpression implements Expression interface method.
+func (e Z{{.Name}}Expr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	switch len(e) {
 	case 0:
 		buf = append(buf, "('empty' = '{{.Op}}')"...)
 		return buf
 	case 1:
-		return e.Exprs[0].WriteExpression(ctx, buf)
+		return e[0].WriteExpression(ctx, buf)
 	}
 	buf = append(buf, '(')
-	buf = e.Exprs[0].WriteExpression(ctx, buf)
+	buf = e[0].WriteExpression(ctx, buf)
 	buf = append(buf, ')')
-	for _, cd := range e.Exprs[1:] {
+	for _, cd := range e[1:] {
 		buf = append(buf, "{{.Op}}("...)
 		buf = cd.WriteExpression(ctx, buf)
 		buf = append(buf, ')')
 	}
 	return buf
-}
-
-func (e *{{.Name}}Expr) Add(exprs ...Expression) Expressions {
-	e.Exprs = append(e.Exprs, exprs...)
-	return e
-}
-
-func (e *{{.Name}}Expr) Len() int {
-	return len(e.Exprs)
 }
 {{end}}
 `

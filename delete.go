@@ -6,7 +6,7 @@ import "github.com/oov/q/qutil"
 type ZDeleteBuilder struct {
 	Dialect qutil.Dialect
 	Table   Table
-	Wheres  Expressions
+	Wheres  ZAndExpr
 }
 
 // Delete creates ZDeleteBuilder.
@@ -17,7 +17,7 @@ func Delete(table ...Table) *ZDeleteBuilder {
 	}
 	return &ZDeleteBuilder{
 		Table:  t,
-		Wheres: &andExpr{Exprs: make([]Expression, 0, 4)},
+		Wheres: ZAndExpr(make([]Expression, 0, 4)),
 	}
 }
 
@@ -36,7 +36,7 @@ func (b *ZDeleteBuilder) From(table Table) *ZDeleteBuilder {
 // Where adds condition to the WHERE clause.
 // More than one condition is connected by AND.
 func (b *ZDeleteBuilder) Where(conds ...Expression) *ZDeleteBuilder {
-	b.Wheres.Add(conds...)
+	b.Wheres = append(b.Wheres, conds...)
 	return b
 }
 
@@ -46,7 +46,7 @@ func (b *ZDeleteBuilder) write(ctx *qutil.Context, buf []byte) []byte {
 	}
 	buf = append(buf, "DELETE FROM "...)
 	buf = b.Table.WriteTable(ctx, buf)
-	if b.Wheres.Len() > 0 {
+	if len(b.Wheres) > 0 {
 		buf = append(buf, " WHERE "...)
 		buf = b.Wheres.WriteExpression(ctx, buf)
 	}

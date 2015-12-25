@@ -174,24 +174,28 @@ func (e *notInExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	return buf
 }
 
-type andExpr struct {
-	Exprs []Expression
-}
+// ZAndExpr represents AND Expression.
+type ZAndExpr []Expression
 
-func (e *andExpr) String() string               { return expressionToString(e) }
-func (e *andExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
-func (e *andExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	switch len(e.Exprs) {
+// String implements fmt.Stringer interface method.
+func (e ZAndExpr) String() string { return expressionToString(e) }
+
+// C implements Expression interface method.
+func (e ZAndExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
+
+// WriteExpression implements Expression interface method.
+func (e ZAndExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	switch len(e) {
 	case 0:
 		buf = append(buf, "('empty' = 'AND')"...)
 		return buf
 	case 1:
-		return e.Exprs[0].WriteExpression(ctx, buf)
+		return e[0].WriteExpression(ctx, buf)
 	}
 	buf = append(buf, '(')
-	buf = e.Exprs[0].WriteExpression(ctx, buf)
+	buf = e[0].WriteExpression(ctx, buf)
 	buf = append(buf, ')')
-	for _, cd := range e.Exprs[1:] {
+	for _, cd := range e[1:] {
 		buf = append(buf, "AND("...)
 		buf = cd.WriteExpression(ctx, buf)
 		buf = append(buf, ')')
@@ -199,45 +203,31 @@ func (e *andExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 	return buf
 }
 
-func (e *andExpr) Add(exprs ...Expression) Expressions {
-	e.Exprs = append(e.Exprs, exprs...)
-	return e
-}
+// ZOrExpr represents OR Expression.
+type ZOrExpr []Expression
 
-func (e *andExpr) Len() int {
-	return len(e.Exprs)
-}
+// String implements fmt.Stringer interface method.
+func (e ZOrExpr) String() string { return expressionToString(e) }
 
-type orExpr struct {
-	Exprs []Expression
-}
+// C implements Expression interface method.
+func (e ZOrExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
 
-func (e *orExpr) String() string               { return expressionToString(e) }
-func (e *orExpr) C(aliasName ...string) Column { return columnExpr(e, aliasName...) }
-func (e *orExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
-	switch len(e.Exprs) {
+// WriteExpression implements Expression interface method.
+func (e ZOrExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	switch len(e) {
 	case 0:
 		buf = append(buf, "('empty' = 'OR')"...)
 		return buf
 	case 1:
-		return e.Exprs[0].WriteExpression(ctx, buf)
+		return e[0].WriteExpression(ctx, buf)
 	}
 	buf = append(buf, '(')
-	buf = e.Exprs[0].WriteExpression(ctx, buf)
+	buf = e[0].WriteExpression(ctx, buf)
 	buf = append(buf, ')')
-	for _, cd := range e.Exprs[1:] {
+	for _, cd := range e[1:] {
 		buf = append(buf, "OR("...)
 		buf = cd.WriteExpression(ctx, buf)
 		buf = append(buf, ')')
 	}
 	return buf
-}
-
-func (e *orExpr) Add(exprs ...Expression) Expressions {
-	e.Exprs = append(e.Exprs, exprs...)
-	return e
-}
-
-func (e *orExpr) Len() int {
-	return len(e.Exprs)
 }

@@ -29,7 +29,7 @@ func tableToString(t Table) string {
 type join struct {
 	Type  string
 	Table Table
-	Conds Expressions
+	Conds ZAndExpr
 }
 
 type joinable struct {
@@ -40,7 +40,7 @@ func (j *joinable) InnerJoin(table Table, conds ...Expression) {
 	j.Joins = append(j.Joins, join{
 		Type:  "INNER",
 		Table: table,
-		Conds: And(conds...),
+		Conds: ZAndExpr(conds),
 	})
 }
 
@@ -48,7 +48,7 @@ func (j *joinable) LeftJoin(table Table, conds ...Expression) {
 	j.Joins = append(j.Joins, join{
 		Type:  "LEFT",
 		Table: table,
-		Conds: And(conds...),
+		Conds: ZAndExpr(conds),
 	})
 }
 
@@ -82,7 +82,7 @@ func (j *joinable) WriteJoins(ctx *qutil.Context, buf []byte) []byte {
 			buf = append(buf, ')')
 		}
 
-		if v.Conds == nil || v.Conds.Len() == 0 {
+		if v.Conds == nil || len(v.Conds) == 0 {
 			if (v.Type == "INNER" && !ctx.Dialect.CanUseInnerJoinWithoutCondition()) ||
 				(v.Type == "LEFT" && !ctx.Dialect.CanUseLeftJoinWithoutCondition()) {
 				buf = append(buf, " ON 'no' != 'cond'"...)
