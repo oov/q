@@ -262,8 +262,8 @@ func ExampleZSelectBuilder_From() {
 	// Builder: SELECT * FROM (SELECT * FROM "post") AS "p" []
 }
 
-// This is an example of how to use ZSelectBuilder.SQL.
-func ExampleZSelectBuilder_SQL() {
+// This is an example of how to use ZSelectBuilder.ToSQL.
+func ExampleZSelectBuilder_ToSQL() {
 	fmt.Println(q.Select().From(q.T("user")).Where(q.Lte(q.C("age"), 18)).ToSQL())
 	// Output:
 	// SELECT * FROM "user" WHERE "age" <= ? [18]
