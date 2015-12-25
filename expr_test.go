@@ -266,13 +266,11 @@ func TestNullCUnimplementedPanic(t *testing.T) {
 	nullExpr{}.C()
 }
 
-func TestInVEmptySlicePanic(t *testing.T) {
-	defer func() {
-		if e := recover(); e == nil {
-			t.Error("want Panic got Nothing")
-		}
-	}()
-	InV([]int{})
+func TestInVEmptySlice(t *testing.T) {
+	want := "()"
+	if r := fmt.Sprint(InV([]int{})); want != r {
+		t.Errorf("want %s got %s", want, r)
+	}
 }
 
 func TestExpression(t *testing.T) {

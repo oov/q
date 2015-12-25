@@ -209,15 +209,7 @@ func InV(slice interface{}) Variable {
 	if s.Kind() != reflect.Slice {
 		return inVariable{slice}
 	}
-	ln := s.Len()
-	if ln == 0 {
-		panic("q: need at least one value to create Variable.")
-	}
-	v := make(inVariable, ln)
-	for i := 0; i < ln; i++ {
-		v[i] = s.Index(i).Interface()
-	}
-	return v
+	return valueToInV(s)
 }
 
 type inVariable []interface{}
@@ -225,9 +217,14 @@ type inVariable []interface{}
 func (v inVariable) String() string               { return expressionToString(v) }
 func (v inVariable) C(aliasName ...string) Column { return columnExpr(v, aliasName...) }
 func (v inVariable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	ln := len(v)
+	if ln == 0 {
+		return append(buf, "()"...)
+	}
+
 	buf = append(buf, '(')
 	buf = ctx.Placeholder.Next(buf)
-	for i, l := 1, len(v); i < l; i++ {
+	for i := 1; i < ln; i++ {
 		buf = append(buf, ',')
 		buf = ctx.Placeholder.Next(buf)
 	}
