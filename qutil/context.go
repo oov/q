@@ -6,6 +6,7 @@ type Context struct {
 	Dialect     Dialect
 	Placeholder Placeholder
 	Args        []interface{}
+	ArgsMap     map[interface{}]int
 }
 
 func NewContext(starter interface{}, bufCap int, argsCap int, d Dialect) ([]byte, *Context) {
@@ -17,5 +18,6 @@ func NewContext(starter interface{}, bufCap int, argsCap int, d Dialect) ([]byte
 		Dialect:     d,
 		Placeholder: d.Placeholder(),
 		Args:        make([]interface{}, 0, argsCap),
+		ArgsMap:     make(map[interface{}]int),
 	}
 }

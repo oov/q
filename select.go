@@ -173,6 +173,11 @@ func (b *ZSelectBuilder) ToSQL() (string, []interface{}) {
 	return builderToSQL(b, b.Dialect, 128, 8, false)
 }
 
+// ToPrepared returns generated SQL and query arguments builder generator.
+func (b *ZSelectBuilder) ToPrepared() (string, func() *ZArgsBuilder) {
+	return builderToPrepared(b, b.Dialect, 128, 8, false)
+}
+
 // String implements fmt.Stringer interface.
 func (b *ZSelectBuilder) String() string {
 	return builderToString(b, b.Dialect, 128, 8, false)

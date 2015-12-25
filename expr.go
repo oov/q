@@ -180,7 +180,13 @@ func (e unsafeExpr) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
 type Variable Expression
 
 // V creates Variable from a single input.
-func V(v interface{}) Variable {
+//
+// If aliasForPrepared is given, the value can be rewritten using an alias name in ZArgsBuilder.Set.
+// Please refer to the Select.ToPrepared example for more details.
+func V(v interface{}, aliasForPrepared ...interface{}) Variable {
+	if len(aliasForPrepared) > 0 {
+		return &aliasedVariable{v, aliasForPrepared[0]}
+	}
 	return &variable{v}
 }
 
@@ -191,6 +197,19 @@ type variable struct {
 func (v *variable) String() string               { return expressionToString(v) }
 func (v *variable) C(aliasName ...string) Column { return columnExpr(v, aliasName...) }
 func (v *variable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	ctx.Args = append(ctx.Args, v.V)
+	return ctx.Placeholder.Next(buf)
+}
+
+type aliasedVariable struct {
+	V     interface{}
+	Alias interface{}
+}
+
+func (v *aliasedVariable) String() string               { return expressionToString(v) }
+func (v *aliasedVariable) C(aliasName ...string) Column { return columnExpr(v, aliasName...) }
+func (v *aliasedVariable) WriteExpression(ctx *qutil.Context, buf []byte) []byte {
+	ctx.ArgsMap[v.Alias] = len(ctx.Args)
 	ctx.Args = append(ctx.Args, v.V)
 	return ctx.Placeholder.Next(buf)
 }

@@ -18,7 +18,7 @@ func Example() {
 	)
 	// You can use sel by performing the following steps.
 	// sql, args := sel.ToSQL()
-	// rows, err := db.Query(sql.String(), args...)
+	// rows, err := db.Query(sql, args...)
 	// ...
 	fmt.Println(sel)
 	// Output:
@@ -68,6 +68,28 @@ func Example_unsafe() {
 	// Output:
 	// SELECT SUM(CASE WHEN ("u"."age" >= 13)AND("u"."age" <= 19) THEN 1 ELSE 0 END) AS "teen", SUM(CASE WHEN "u"."age" >= 20 THEN 1 ELSE 0 END) AS "adult" FROM "user" AS "u" []
 	// SELECT * FROM "user" AS "u" WHERE ("u"."last_name" = ?)AND("u"."last_name" = ?)AND("u"."last_name" = '' OR '' = '') [' OR '' = ' ' OR '' = ']
+}
+
+func Example_prepared() {
+	user := q.T("user")
+	sel := q.Select().From(
+		user,
+	).Column(
+		user.C("id"),
+		user.C("name"),
+	).Where(
+		q.Eq(user.C("age"), q.V(18, "findAge")),
+	)
+	// You can use sel by performing the following steps.
+	// sql, argsBuilderGenerator := sel.ToPrepared()
+	// stmt, err := db.Prepare(sql)
+	// ...
+	// ab := argsBuilderGenerator()
+	// ab.Set("findAge", 24)
+	// rows, err := stmt.Query(ab.Args)
+	fmt.Println(sel)
+	// Output:
+	// SELECT "user"."id", "user"."name" FROM "user" WHERE "user"."age" = ? [18]
 }
 
 func ExampleColumn() {
@@ -267,6 +289,43 @@ func ExampleZSelectBuilder_ToSQL() {
 	fmt.Println(q.Select().From(q.T("user")).Where(q.Lte(q.C("age"), 18)).ToSQL())
 	// Output:
 	// SELECT * FROM "user" WHERE "age" <= ? [18]
+}
+
+// This is an example of how to use ZSelectBuilder.ToPrepared and V.
+func ExampleZSelectBuilder_ToPrepared() {
+	sql, gen := q.Select().From(q.T("user")).Where(
+		q.Lte(q.C("id"), 100),
+		q.Lte(q.C("age"), q.V(18, "findAge")),
+	).ToPrepared()
+
+	// // You can use by performing the following steps.
+	// stmt, err := db.Prepare(sql)
+	// if err != nil {
+	//   return err
+	// }
+	// defer stmt.Close()
+	//
+	// ab := gen()
+	// ab.Set("findAge", 24)
+	// stmt.Query(ab.Args)
+
+	fmt.Println("SQL:", sql)
+
+	// build arguments
+	ab := gen()
+	fmt.Println("Default  Args:", ab.Args)
+	ab.Set("findAge", 24)
+	fmt.Println("Modified Args:", ab.Args)
+	// You can also rewrite other values by using an index,
+	// but there is a problem readability and weak to SQL change,
+	// so it isn't recommended.
+	// ab.Args[0] = 123
+	// ab.Args[1] = 24
+
+	// Output:
+	// SQL: SELECT * FROM "user" WHERE ("id" <= ?)AND("age" <= ?)
+	// Default  Args: [100 18]
+	// Modified Args: [100 24]
 }
 
 // This is an example of how to use ZSelectBuilder.Where.

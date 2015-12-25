@@ -134,6 +134,11 @@ func (b *ZInsertBuilder) ToSQL() (string, []interface{}) {
 	return builderToSQL(b, b.Dialect, 128, 8, true)
 }
 
+// ToPrepared returns generated SQL and arguments builder generator.
+func (b *ZInsertBuilder) ToPrepared() (string, func() *ZArgsBuilder) {
+	return builderToPrepared(b, b.Dialect, 128, 8, false)
+}
+
 // String implemenets fmt.Stringer interface.
 func (b *ZInsertBuilder) String() string {
 	return builderToString(b, b.Dialect, 128, 8, true)
