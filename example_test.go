@@ -17,7 +17,7 @@ func Example() {
 		q.Eq(user.C("age"), 18),
 	)
 	// You can use sel by performing the following steps.
-	// sql, args := sel.SQL()
+	// sql, args := sel.ToSQL()
 	// rows, err := db.Query(sql.String(), args...)
 	// ...
 	fmt.Println(sel)
