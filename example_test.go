@@ -86,7 +86,7 @@ func Example_prepared() {
 	// ...
 	// ab := argsBuilderGenerator()
 	// ab.Set("findAge", 24)
-	// rows, err := stmt.Query(ab.Args)
+	// rows, err := stmt.Query(ab.Args...)
 	fmt.Println(sel)
 	// Output:
 	// SELECT "user"."id", "user"."name" FROM "user" WHERE "user"."age" = ? [18]
@@ -307,7 +307,7 @@ func ExampleZSelectBuilder_ToPrepared() {
 	//
 	// ab := gen()
 	// ab.Set("findAge", 24)
-	// stmt.Query(ab.Args)
+	// stmt.Query(ab.Args...)
 
 	fmt.Println("SQL:", sql)
 
